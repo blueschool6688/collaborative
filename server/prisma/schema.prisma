@@ -1,0 +1,88 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  VIEWER
+  EDITOR
+  OWNER
+}
+
+model User {
+  id           String               @id @default(cuid())
+  email        String               @unique
+  passwordHash String
+  name         String
+  avatar       String?
+  color        String               @default("#6366f1")
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+
+  documents    Document[]           @relation("OwnerDocuments")
+  permissions  DocumentPermission[]
+
+  @@map("users")
+}
+
+model Document {
+  id          String               @id @default(cuid())
+  title       String               @default("Untitled Document")
+  icon        String?              @default("📝")
+  isPublic    Boolean              @default(false)
+  defaultRole Role                 @default(VIEWER)
+  ownerId     String
+  owner       User                 @relation("OwnerDocuments", fields: [ownerId], references: [id], onDelete: Cascade)
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  permissions DocumentPermission[]
+  snapshots   DocumentSnapshot[]
+  updateLogs  DocumentUpdateLog[]
+
+  @@map("documents")
+}
+
+model DocumentPermission {
+  id         String   @id @default(cuid())
+  documentId String
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role       Role     @default(VIEWER)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([documentId, userId])
+  @@map("document_permissions")
+}
+
+model DocumentSnapshot {
+  id         String   @id @default(cuid())
+  documentId String
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  snapshot   Bytes
+  version    Int      @default(1)
+  size       Int      @default(0)
+  createdBy  String?
+  createdAt  DateTime @default(now())
+
+  @@index([documentId, createdAt(sort: Desc)])
+  @@map("document_snapshots")
+}
+
+model DocumentUpdateLog {
+  id         String   @id @default(cuid())
+  documentId String
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  update     Bytes
+  clock      Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  @@index([documentId, createdAt(sort: Asc)])
+  @@map("document_update_logs")
+}
