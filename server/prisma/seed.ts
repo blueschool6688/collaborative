@@ -101,13 +101,25 @@ async function main() {
   const salt = await bcrypt.genSalt(10);
   const commonPasswordHash = await bcrypt.hash("password123", salt);
 
-  // 1. Create Seed Users
+  // 1. Create Super Admin User
+  const admin = await prisma.user.create({
+    data: {
+      email: "admin@example.com",
+      name: "System Administrator",
+      passwordHash: commonPasswordHash,
+      color: "#ef4444", // Crimson Red
+      systemRole: "ADMIN",
+    },
+  });
+
+  // 2. Create Regular Seed Users
   const alice = await prisma.user.create({
     data: {
       email: "alice@example.com",
       name: "Alice Chen",
       passwordHash: commonPasswordHash,
       color: "#6366f1", // Electric Indigo
+      systemRole: "USER",
     },
   });
 
@@ -117,6 +129,7 @@ async function main() {
       name: "Bob Martinez",
       passwordHash: commonPasswordHash,
       color: "#10b981", // Emerald
+      systemRole: "USER",
     },
   });
 
@@ -126,6 +139,7 @@ async function main() {
       name: "Charlie Davis",
       passwordHash: commonPasswordHash,
       color: "#f59e0b", // Amber
+      systemRole: "USER",
     },
   });
 
@@ -135,12 +149,14 @@ async function main() {
       name: "Diana Ross",
       passwordHash: commonPasswordHash,
       color: "#ec4899", // Pink
+      systemRole: "USER",
     },
   });
 
-  console.log(`✅ Created 4 Users: Alice, Bob, Charlie, Diana (Password: password123)`);
+  console.log(`✅ Created 1 Super Admin: admin@example.com (Password: password123, Role: ADMIN)`);
+  console.log(`✅ Created 4 Users: Alice, Bob, Charlie, Diana (Password: password123, Role: USER)`);
 
-  // 2. Create Document 1: Distributed Systems Spec (Owner: Alice)
+  // 3. Create Document 1: Distributed Systems Spec (Owner: Alice)
   const doc1Content = {
     title: "⚡ Architecture & Distributed Systems Spec",
     blocks: [
@@ -227,7 +243,7 @@ async function main() {
     },
   });
 
-  // 3. Create Document 2: Product Roadmap 2026 (Owner: Bob)
+  // 4. Create Document 2: Product Roadmap 2026 (Owner: Bob)
   const doc2Content = {
     title: "📋 Product Roadmap & Team Milestones 2026",
     blocks: [
@@ -296,7 +312,7 @@ async function main() {
     },
   });
 
-  // 4. Create Document 3: Design System & Tokens (Owner: Charlie)
+  // 5. Create Document 3: Design System & Tokens (Owner: Charlie)
   const doc3Content = {
     title: "🎨 Design System & Visual Hierarchy",
     blocks: [

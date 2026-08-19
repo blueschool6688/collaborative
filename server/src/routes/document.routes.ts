@@ -144,7 +144,10 @@ router.get("/:id", optionalAuth, async (req: AuthenticatedRequest, res: Response
     }
 
     let userRole: Role | "NONE" = "NONE";
-    if (userId) {
+    const isAdmin = req.user?.systemRole === "ADMIN";
+    if (isAdmin) {
+      userRole = "OWNER";
+    } else if (userId) {
       if (document.ownerId === userId) {
         userRole = "OWNER";
       } else {
@@ -197,6 +200,7 @@ router.patch("/:id", requireAuth, async (req: AuthenticatedRequest, res: Respons
   try {
     const id = req.params.id as string;
     const userId = req.user!.userId;
+    const isAdmin = req.user!.systemRole === "ADMIN";
     const { title, icon, isPublic, defaultRole } = req.body;
 
     const document: any = await prisma.document.findUnique({
@@ -211,8 +215,8 @@ router.patch("/:id", requireAuth, async (req: AuthenticatedRequest, res: Respons
       return;
     }
 
-    const isOwner = document.ownerId === userId;
-    const isEditor = document.permissions?.some((p: any) => p.role === "EDITOR" || p.role === "OWNER");
+    const isOwner = isAdmin || document.ownerId === userId;
+    const isEditor = isAdmin || isOwner || document.permissions?.some((p: any) => p.role === "EDITOR" || p.role === "OWNER");
 
     if (!isOwner && !isEditor) {
       res.status(403).json({ error: "You do not have permission to edit this document settings" });
@@ -226,12 +230,50 @@ router.patch("/:id", requireAuth, async (req: AuthenticatedRequest, res: Respons
     if (isOwner && isPublic !== undefined) updateData.isPublic = Boolean(isPublic);
     if (isOwner && defaultRole !== undefined) updateData.defaultRole = defaultRole as Role;
 
-    const updated = await prisma.document.update({
+    const updated: any = await prisma.document.update({
       where: { id },
       data: updateData,
+      include: {
+        owner: {
+          select: { id: true, name: true, email: true, color: true, avatar: true },
+        },
+        permissions: {
+          include: {
+            user: {
+              select: { id: true, name: true, email: true, color: true, avatar: true },
+            },
+          },
+        },
+      },
     });
 
-    res.json({ document: updated });
+    let userRole: Role = isOwner ? "OWNER" : "EDITOR";
+    const perm = updated.permissions?.find((p: any) => p.userId === userId);
+    if (!isOwner && perm) {
+      userRole = perm.role as Role;
+    }
+
+    res.json({
+      document: {
+        id: updated.id,
+        title: updated.title,
+        icon: updated.icon,
+        isPublic: updated.isPublic,
+        defaultRole: updated.defaultRole,
+        ownerId: updated.ownerId,
+        owner: updated.owner,
+        userRole,
+        permissions: updated.permissions?.map((p: any) => ({
+          id: p.id,
+          userId: p.userId,
+          user: p.user,
+          role: p.role,
+          createdAt: p.createdAt,
+        })) || [],
+        createdAt: updated.createdAt,
+        updatedAt: updated.updatedAt,
+      },
+    });
   } catch (error) {
     console.error("Update document error:", error);
     res.status(500).json({ error: "Failed to update document" });

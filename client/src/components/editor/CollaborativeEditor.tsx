@@ -75,7 +75,7 @@ export const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
       Link.configure({
         openOnClick: false,
         HTMLAttributes: {
-          class: "text-brand-400 underline underline-offset-2 hover:text-brand-300",
+          class: "text-brand-500 dark:text-brand-400 underline underline-offset-2 hover:text-brand-400",
         },
       }),
       Placeholder.configure({
@@ -88,14 +88,16 @@ export const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
     editorProps: {
       attributes: {
         class:
-          "prose prose-invert max-w-none focus:outline-none text-zinc-800 dark:text-zinc-200 min-h-[600px] leading-relaxed",
+          "prose prose-zinc dark:prose-invert max-w-none focus:outline-none text-zinc-800 dark:text-zinc-200 min-h-[500px] leading-relaxed text-sm sm:text-base",
       },
       handleKeyDown: (view, event) => {
         if (event.key === "/" && !slashMenuOpen) {
           const { state } = view;
           const { from } = state.selection;
           const coords = view.coordsAtPos(from);
-          setSlashMenuPos({ top: coords.bottom + 8, left: coords.left });
+          const top = Math.min(coords.bottom + 8, window.innerHeight - 380);
+          const left = Math.min(Math.max(16, coords.left), window.innerWidth - 340);
+          setSlashMenuPos({ top, left });
           setSlashMenuOpen(true);
         } else if (slashMenuOpen && (event.key === "Escape" || event.key === "Backspace")) {
           setSlashMenuOpen(false);
@@ -106,7 +108,7 @@ export const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
   });
 
   return (
-    <div className="relative w-full max-w-4xl mx-auto px-6 py-8">
+    <div className="relative w-full max-w-4xl mx-auto px-2 sm:px-6 md:px-8 py-4 sm:py-8 transition-all">
       {/* Table Action Controls */}
       <TableMenu editor={editor} />
 
@@ -122,7 +124,9 @@ export const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
       />
 
       {/* ProseMirror Content Area */}
-      <EditorContent editor={editor} />
+      <div className="overflow-x-auto">
+        <EditorContent editor={editor} />
+      </div>
     </div>
   );
 };

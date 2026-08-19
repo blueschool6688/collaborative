@@ -32,12 +32,12 @@ export async function onAuthenticateHook(data: onAuthenticatePayload) {
     if (payload) {
       const dbUser = await prisma.user.findUnique({
         where: { id: payload.userId },
-        select: { id: true, name: true, email: true, color: true, avatar: true },
+        select: { id: true, name: true, email: true, color: true, avatar: true, systemRole: true },
       });
 
       if (dbUser) {
         user = dbUser;
-        if (document.ownerId === dbUser.id) {
+        if (dbUser.systemRole === "ADMIN" || document.ownerId === dbUser.id) {
           userRole = "OWNER";
         } else {
           const userPerm = document.permissions.find((p: any) => p.userId === dbUser.id);

@@ -6,6 +6,7 @@ import { config } from "./config.js";
 import authRoutes from "./routes/auth.routes.js";
 import documentRoutes from "./routes/document.routes.js";
 import historyRoutes from "./routes/history.routes.js";
+import adminRoutes from "./routes/admin.routes.js";
 import { createHocuspocusServer } from "./hocuspocus/server.js";
 
 const app = express();
@@ -19,7 +20,7 @@ app.use(
 );
 app.use(express.json({ limit: "10mb" }));
 
-// Request logger
+// Request logger with timestamp
 app.use((req, _res, next) => {
   if (req.path !== "/api/health") {
     console.log(`[HTTP] ${req.method} ${req.path}`);
@@ -31,8 +32,9 @@ app.use((req, _res, next) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/documents", documentRoutes);
 app.use("/api/documents", historyRoutes);
+app.use("/api/admin", adminRoutes);
 
-// Health check
+// Health check & Telemetry Ping
 app.get("/api/health", (_req, res) => {
   res.json({
     status: "ok",
@@ -61,7 +63,4 @@ server.on("upgrade", (request, socket, head) => {
 
 server.listen(config.port, () => {
   console.log(`✨ Server running on http://localhost:${config.port}`);
-  console.log(`⚡ Hocuspocus WebSocket ready at ws://localhost:${config.port}`);
-  console.log(`📦 Database: PostgreSQL (Prisma)`);
-  console.log(`🚀 Redis PubSub: ${config.redisHost}:${config.redisPort}`);
 });

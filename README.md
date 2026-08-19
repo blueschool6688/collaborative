@@ -266,6 +266,8 @@ npm run dev
 
 ## 📚 Documentation Directory
 
+- 🧪 [**Offline-First Testing & Notion Editor Architecture Guide**](docs/offline-testing-and-notion-editor-guide.md) — Comprehensive guide on offline testing scenarios, state vector reconciliation, and Notion-like Slash Menu `/` components.
+- 🧠 [**Deep Dive: CRDT, Hocuspocus & Distributed Systems**](docs/deep-dive-crdt-hocuspocus-distributed-systems.md) — Comprehensive explanation of distributed data flow, CRDT YATA mechanics, and Hocuspocus vs raw WebSockets.
 - 📐 [**Distributed Systems Architecture & Data Flow**](docs/distributed-systems-architecture.md) — Mathematical proofs, CAP theorems, State Vector mechanics, and Redis mesh topologies.
 - 🔌 [**API & WebSocket Interface Specification**](docs/api-and-websocket-contracts.md) — REST endpoint schemas, error formatting, and WebSocket handshake protocols.
 - 🔄 [**Master Workflow Manual**](workflow.md) — End-to-end technical overview and operating principles.

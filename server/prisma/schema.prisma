@@ -13,13 +13,21 @@ enum Role {
   OWNER
 }
 
+enum SystemRole {
+  USER
+  ADMIN
+}
+
 model User {
   id           String               @id @default(cuid())
   email        String               @unique
-  passwordHash String
+  passwordHash String?
   name         String
   avatar       String?
   color        String               @default("#6366f1")
+  systemRole   SystemRole           @default(USER)
+  provider     String?              @default("local")
+  providerId   String?
   createdAt    DateTime             @default(now())
   updatedAt    DateTime             @updatedAt
 

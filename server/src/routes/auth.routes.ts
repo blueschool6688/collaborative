@@ -58,6 +58,8 @@ router.post("/register", async (req, res): Promise<void> => {
         passwordHash,
         name: name.trim(),
         color,
+        systemRole: "USER",
+        provider: "local",
       },
       select: {
         id: true,
@@ -65,6 +67,8 @@ router.post("/register", async (req, res): Promise<void> => {
         name: true,
         avatar: true,
         color: true,
+        systemRole: true,
+        provider: true,
         createdAt: true,
       },
     });
@@ -75,6 +79,7 @@ router.post("/register", async (req, res): Promise<void> => {
       name: user.name,
       color: user.color,
       avatar: user.avatar,
+      systemRole: user.systemRole,
     });
 
     res.status(201).json({
@@ -103,7 +108,7 @@ router.post("/login", async (req, res): Promise<void> => {
       where: { email: normalizedEmail },
     });
 
-    if (!user) {
+    if (!user || !user.passwordHash) {
       res.status(401).json({ error: "Invalid email or password" });
       return;
     }
@@ -120,6 +125,7 @@ router.post("/login", async (req, res): Promise<void> => {
       name: user.name,
       color: user.color,
       avatar: user.avatar,
+      systemRole: user.systemRole,
     });
 
     res.json({
@@ -131,12 +137,84 @@ router.post("/login", async (req, res): Promise<void> => {
         name: user.name,
         avatar: user.avatar,
         color: user.color,
+        systemRole: user.systemRole,
+        provider: user.provider,
         createdAt: user.createdAt,
       },
     });
   } catch (error) {
     console.error("Login error:", error);
     res.status(500).json({ error: "Internal server error during login" });
+  }
+});
+
+// POST /api/auth/oauth - Social Login with Google & GitHub
+router.post("/oauth", async (req, res): Promise<void> => {
+  try {
+    const { provider, email, name, avatar, providerId } = req.body;
+
+    if (!provider || !email || !name) {
+      res.status(400).json({ error: "Provider, email, and name are required for social login" });
+      return;
+    }
+
+    const normalizedEmail = email.toLowerCase().trim();
+    let user = await prisma.user.findUnique({
+      where: { email: normalizedEmail },
+    });
+
+    if (!user) {
+      // Create new user via OAuth
+      user = await prisma.user.create({
+        data: {
+          email: normalizedEmail,
+          name: name.trim(),
+          avatar: avatar || null,
+          color: getRandomColor(),
+          provider: provider.toLowerCase(),
+          providerId: providerId || `${provider}_${Date.now()}`,
+          systemRole: "USER",
+        },
+      });
+    } else {
+      // Link or update avatar/provider if not already set
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          name: user.name || name.trim(),
+          avatar: user.avatar || avatar,
+          provider: user.provider || provider.toLowerCase(),
+          providerId: user.providerId || providerId,
+        },
+      });
+    }
+
+    const token = signToken({
+      userId: user.id,
+      email: user.email,
+      name: user.name,
+      color: user.color,
+      avatar: user.avatar,
+      systemRole: user.systemRole,
+    });
+
+    res.json({
+      message: `Signed in with ${provider}`,
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        avatar: user.avatar,
+        color: user.color,
+        systemRole: user.systemRole,
+        provider: user.provider,
+        createdAt: user.createdAt,
+      },
+    });
+  } catch (error) {
+    console.error("OAuth login error:", error);
+    res.status(500).json({ error: "Failed to authenticate with social provider" });
   }
 });
 
@@ -151,6 +229,8 @@ router.get("/me", requireAuth, async (req: AuthenticatedRequest, res: Response):
         name: true,
         avatar: true,
         color: true,
+        systemRole: true,
+        provider: true,
         createdAt: true,
       },
     });

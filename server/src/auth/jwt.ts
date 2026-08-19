@@ -1,12 +1,15 @@
 import jwt from "jsonwebtoken";
 import { config } from "../config.js";
 
+export type SystemRole = "USER" | "ADMIN";
+
 export interface UserTokenPayload {
   userId: string;
   email: string;
   name: string;
   color?: string;
   avatar?: string | null;
+  systemRole?: SystemRole;
 }
 
 export function signToken(payload: UserTokenPayload, expiresIn: string | number = "7d"): string {

@@ -13,9 +13,9 @@ import {
   Sun,
   Moon,
   SignIn,
-  User as UserIcon,
   SignOut,
   Sidebar as SidebarIcon,
+  ShieldCheck,
 } from "@phosphor-icons/react";
 
 interface HeaderProps {
@@ -26,6 +26,7 @@ interface HeaderProps {
   onOpenShare: () => void;
   onOpenHistory: () => void;
   onOpenAuth: () => void;
+  onOpenAdmin?: () => void;
   onToggleSidebar: () => void;
   isSidebarOpen: boolean;
 }
@@ -38,6 +39,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenShare,
   onOpenHistory,
   onOpenAuth,
+  onOpenAdmin,
   onToggleSidebar,
 }) => {
   const { user, logout } = useAuth();
@@ -65,45 +67,47 @@ export const Header: React.FC<HeaderProps> = ({
       case "connected":
         return (
           <Badge variant="success" dot size="sm">
-            Saved to Cloud
+            Saved
           </Badge>
         );
       case "syncing":
         return (
           <Badge variant="warning" dot size="sm">
-            Syncing...
+            Syncing
           </Badge>
         );
       case "offline":
         return (
           <Badge variant="neutral" dot size="sm">
-            Offline Cache
+            Offline
           </Badge>
         );
       case "error":
         return (
           <Badge variant="danger" dot size="sm">
-            Sync Error
+            Restricted
           </Badge>
         );
     }
   };
 
+  const isAdmin = user?.systemRole === "ADMIN";
+
   return (
-    <header className="h-14 border-b border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md px-4 flex items-center justify-between shrink-0 z-20">
+    <header className="h-14 border-b border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md px-3 sm:px-4 flex items-center justify-between shrink-0 z-20">
       {/* Left section: Sidebar toggle, breadcrumb, editable title */}
-      <div className="flex items-center gap-3 min-w-0">
+      <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
         <button
           onClick={onToggleSidebar}
-          className="p-2 rounded-lg text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+          className="p-1.5 sm:p-2 rounded-lg text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors shrink-0"
           title="Toggle Sidebar"
         >
           <SidebarIcon size={18} />
         </button>
 
         {document && (
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="text-base select-none">{document.icon || "📝"}</span>
+          <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+            <span className="text-base select-none shrink-0">{document.icon || "📝"}</span>
 
             {isEditingTitle ? (
               <input
@@ -119,7 +123,7 @@ export const Header: React.FC<HeaderProps> = ({
                   }
                 }}
                 autoFocus
-                className="bg-transparent text-sm font-semibold text-zinc-900 dark:text-zinc-100 border-b border-brand-500 focus:outline-none px-0.5 py-0 min-w-[150px]"
+                className="bg-transparent text-xs sm:text-sm font-semibold text-zinc-900 dark:text-zinc-100 border-b border-brand-500 focus:outline-none px-0.5 py-0 max-w-[140px] sm:max-w-[240px]"
               />
             ) : (
               <h1
@@ -128,24 +132,24 @@ export const Header: React.FC<HeaderProps> = ({
                     setIsEditingTitle(true);
                   }
                 }}
-                className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 truncate cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800/60 px-1.5 py-0.5 rounded transition-colors"
+                className="text-xs sm:text-sm font-semibold text-zinc-900 dark:text-zinc-100 truncate cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800/60 px-1 sm:px-1.5 py-0.5 rounded transition-colors max-w-[130px] sm:max-w-[260px]"
                 title="Click to rename"
               >
                 {document.title}
               </h1>
             )}
 
-            <div className="hidden sm:block">{getSyncBadge()}</div>
+            <div className="shrink-0">{getSyncBadge()}</div>
           </div>
         )}
       </div>
 
-      {/* Right section: Collaborators Avatar Pile & Actions */}
-      <div className="flex items-center gap-2">
+      {/* Right section: Collaborators, Admin, Actions */}
+      <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
         {/* Active Collaborators Presence Pile */}
         {collaborators.length > 0 && (
-          <div className="flex items-center -space-x-1.5 mr-2">
-            {collaborators.slice(0, 4).map((collab) => (
+          <div className="hidden sm:flex items-center -space-x-1.5 mr-1">
+            {collaborators.slice(0, 3).map((collab) => (
               <div
                 key={collab.clientId}
                 className="relative group"
@@ -155,17 +159,29 @@ export const Header: React.FC<HeaderProps> = ({
                   name={collab.name}
                   color={collab.color}
                   size="sm"
-                  className="transition-transform group-hover:scale-110 group-hover:z-10"
+                  className="transition-transform group-hover:scale-110 group-hover:z-10 ring-2 ring-white dark:ring-zinc-950"
                 />
-                <span className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-zinc-950" />
+                <span className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-emerald-500 ring-1 ring-zinc-950" />
               </div>
             ))}
-            {collaborators.length > 4 && (
-              <div className="w-7 h-7 rounded-full bg-zinc-800 ring-2 ring-zinc-950 text-zinc-300 text-[10px] font-semibold flex items-center justify-center">
-                +{collaborators.length - 4}
+            {collaborators.length > 3 && (
+              <div className="w-6 h-6 rounded-full bg-zinc-200 dark:bg-zinc-800 ring-1 ring-zinc-950 text-zinc-600 dark:text-zinc-300 text-[10px] font-semibold flex items-center justify-center">
+                +{collaborators.length - 3}
               </div>
             )}
           </div>
+        )}
+
+        {/* Super Admin Dashboard Trigger */}
+        {isAdmin && onOpenAdmin && (
+          <button
+            onClick={onOpenAdmin}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 dark:text-rose-400 border border-rose-500/20 text-xs font-semibold transition-all shadow-sm"
+            title="Open Super Admin Governance"
+          >
+            <ShieldCheck size={16} weight="fill" />
+            <span className="hidden md:inline">Admin</span>
+          </button>
         )}
 
         {/* Action Buttons */}
@@ -175,51 +191,51 @@ export const Header: React.FC<HeaderProps> = ({
               variant="outline"
               size="sm"
               onClick={onOpenHistory}
-              className="gap-1.5 hidden sm:inline-flex"
+              className="gap-1.5 hidden md:inline-flex"
             >
               <ClockCounterClockwise size={15} />
-              <span className="hidden md:inline">History</span>
+              <span>History</span>
             </Button>
 
             <Button
               variant="primary"
               size="sm"
               onClick={onOpenShare}
-              className="gap-1.5"
+              className="gap-1.5 h-8 px-2.5 sm:px-3 text-xs"
             >
-              <ShareNetwork size={15} weight="bold" />
-              <span>Share</span>
+              <ShareNetwork size={14} weight="bold" />
+              <span className="hidden sm:inline">Share</span>
             </Button>
           </>
         )}
 
-        <div className="w-px h-4 bg-zinc-200 dark:bg-zinc-800 mx-1" />
+        <div className="w-px h-4 bg-zinc-200 dark:bg-zinc-800 mx-0.5 sm:mx-1" />
 
         {/* Theme Toggle */}
         <button
           onClick={toggleTheme}
-          className="p-2 rounded-lg text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+          className="p-1.5 sm:p-2 rounded-lg text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
           title={`Switch to ${theme === "dark" ? "Light" : "Dark"} mode`}
         >
-          {theme === "dark" ? <Sun size={17} /> : <Moon size={17} />}
+          {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
         </button>
 
         {/* User Account / Auth */}
         {user ? (
-          <div className="flex items-center gap-2 pl-1">
-            <Avatar name={user.name} color={user.color} size="sm" />
+          <div className="flex items-center gap-1.5 pl-0.5">
+            <Avatar name={user.name} color={user.color} avatar={user.avatar} size="sm" />
             <button
               onClick={logout}
-              className="p-2 rounded-lg text-zinc-400 hover:text-rose-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+              className="p-1.5 sm:p-2 rounded-lg text-zinc-400 hover:text-rose-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
               title="Sign Out"
             >
               <SignOut size={16} />
             </button>
           </div>
         ) : (
-          <Button variant="secondary" size="sm" onClick={onOpenAuth} className="gap-1.5">
-            <SignIn size={15} />
-            <span>Sign In</span>
+          <Button variant="secondary" size="sm" onClick={onOpenAuth} className="gap-1.5 h-8 text-xs">
+            <SignIn size={14} />
+            <span className="hidden sm:inline">Sign In</span>
           </Button>
         )}
       </div>

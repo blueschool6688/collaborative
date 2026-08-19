@@ -33,7 +33,7 @@ Following the `api-and-interface-design` specifications:
 | `201 Created` | Resource created | User registration, document creation |
 | `400 Bad Request` | Invalid payload or missing fields | Empty title, short password |
 | `401 Unauthorized` | Missing or invalid JWT | Expired session, bad token |
-| `403 Forbidden` | Authenticated but insufficient permission | Viewer attempting to edit or delete |
+| `403 Forbidden` | Authenticated but insufficient permission | Viewer attempting to edit or delete / Non-admin accessing admin API |
 | `404 Not Found` | Resource does not exist | Document or user not found |
 | `409 Conflict` | Unique constraint violated | Email already registered |
 | `500 Server Error` | Unhandled internal exception | Database connection failure |
@@ -42,10 +42,11 @@ Following the `api-and-interface-design` specifications:
 
 ## 3. Seeded Mock Test Accounts
 
-The database comes pre-seeded with 4 test user accounts and collaborative documents:
+The database comes pre-seeded with 5 test user accounts (including 1 Super Administrator) and collaborative documents:
 
 | Name | Email | Password | Role / Color | Pre-seeded Ownership |
 | :--- | :--- | :--- | :--- | :--- |
+| **System Administrator** | `admin@example.com` | `password123` | **Super Admin** (`#ef4444` Crimson) | Full platform telemetry & governance access |
 | **Alice Chen** | `alice@example.com` | `password123` | Lead Engineer (`#6366f1` Indigo) | Owner of *"⚡ Architecture & Distributed Systems Spec"* |
 | **Bob Martinez** | `bob@example.com` | `password123` | Product Manager (`#10b981` Emerald) | Owner of *"📋 Product Roadmap & Team Milestones 2026"* |
 | **Charlie Davis** | `charlie@example.com` | `password123` | UI/UX Designer (`#f59e0b` Amber) | Owner of *"🎨 Design System & Visual Hierarchy"* |
@@ -55,10 +56,10 @@ The database comes pre-seeded with 4 test user accounts and collaborative docume
 
 ## 4. REST API Endpoints
 
-### 4.1 Authentication Module (`/api/auth`)
+### 4.1 Authentication & Social OAuth Module (`/api/auth`)
 
 #### `POST /api/auth/register`
-Create a new user account and obtain a JWT token.
+Create a new user account with email and password.
 - **Request Body:**
   ```json
   {
@@ -78,6 +79,8 @@ Create a new user account and obtain a JWT token.
       "name": "Jane Doe",
       "avatar": null,
       "color": "#6366f1",
+      "systemRole": "USER",
+      "provider": "local",
       "createdAt": "2026-08-19T07:30:00.000Z"
     }
   }
@@ -101,7 +104,37 @@ Authenticate with email and password.
       "id": "cm6xoy7vg0000n4112x8p8w1a",
       "email": "alice@example.com",
       "name": "Alice Chen",
-      "color": "#6366f1"
+      "color": "#6366f1",
+      "systemRole": "USER"
+    }
+  }
+  ```
+
+#### `POST /api/auth/oauth`
+Authenticate or create account using Social OAuth provider (Google / GitHub).
+- **Request Body:**
+  ```json
+  {
+    "provider": "google",
+    "email": "alice.chen@gmail.com",
+    "name": "Alice Chen",
+    "avatar": "https://lh3.googleusercontent.com/a/...",
+    "providerId": "google_10293848"
+  }
+  ```
+- **Response `200 OK`:**
+  ```json
+  {
+    "message": "Signed in with google",
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6...",
+    "user": {
+      "id": "cm6xoy7vg0000n4112x8p8w1a",
+      "email": "alice.chen@gmail.com",
+      "name": "Alice Chen",
+      "avatar": "https://lh3.googleusercontent.com/a/...",
+      "color": "#6366f1",
+      "systemRole": "USER",
+      "provider": "google"
     }
   }
   ```
@@ -115,14 +148,60 @@ Fetch current authenticated user profile using header `Authorization: Bearer <to
       "id": "cm6xoy7vg0000n4112x8p8w1a",
       "email": "alice@example.com",
       "name": "Alice Chen",
-      "color": "#6366f1"
+      "color": "#6366f1",
+      "systemRole": "USER"
     }
   }
   ```
 
 ---
 
-### 4.2 Document Module (`/api/documents`)
+### 4.2 Super Admin Governance & Observability Module (`/api/admin`)
+*All `/api/admin/*` endpoints require `systemRole: "ADMIN"` in the JWT token.*
+
+#### `GET /api/admin/stats`
+Retrieve aggregated platform telemetry metrics and runtime health.
+- **Headers:** `Authorization: Bearer <admin_token>`
+- **Response `200 OK`:**
+  ```json
+  {
+    "stats": {
+      "totalUsers": 5,
+      "totalDocuments": 3,
+      "totalSnapshots": 4,
+      "totalUpdateLogs": 0,
+      "totalStorageBytes": 5120,
+      "systemHealth": "OPTIMAL",
+      "uptimeSeconds": 1420,
+      "nodeVersion": "v22.12.0",
+      "memory": {
+        "rssBytes": 68420000,
+        "heapTotalBytes": 32500000,
+        "heapUsedBytes": 19800000
+      }
+    }
+  }
+  ```
+
+#### `GET /api/admin/users?q=<search>`
+Search and list all platform users with owned and shared document counts.
+
+#### `PATCH /api/admin/users/:id/role`
+Promote or demote user system role (`"USER"` $\leftrightarrow$ `"ADMIN"`).
+- **Request Body:** `{"systemRole": "ADMIN"}`
+
+#### `DELETE /api/admin/users/:id`
+Purge a user account and cascade delete their owned documents.
+
+#### `GET /api/admin/documents?q=<search>`
+List all platform documents with size, owner info, and snapshots version.
+
+#### `DELETE /api/admin/documents/:id`
+Force delete any document across the platform.
+
+---
+
+### 4.3 Document Module (`/api/documents`)
 
 #### `GET /api/documents`
 List all documents the authenticated user owns or has permission to collaborate on.
@@ -154,152 +233,34 @@ List all documents the authenticated user owns or has permission to collaborate 
 
 #### `POST /api/documents`
 Create a new blank document and initialize its first CRDT snapshot.
-- **Request Body:**
-  ```json
-  {
-    "title": "Quarterly Sprint Review",
-    "icon": "🚀",
-    "isPublic": false,
-    "defaultRole": "VIEWER"
-  }
-  ```
-- **Response `201 Created`:**
-  ```json
-  {
-    "document": {
-      "id": "cm6xoy7vg000zn4112x8p8w99",
-      "title": "Quarterly Sprint Review",
-      "icon": "🚀",
-      "isPublic": false,
-      "defaultRole": "VIEWER",
-      "ownerId": "cm6xoy7vg0000n4112x8p8w1a",
-      "userRole": "OWNER",
-      "createdAt": "2026-08-19T07:40:00.000Z",
-      "updatedAt": "2026-08-19T07:40:00.000Z"
-    }
-  }
-  ```
 
 #### `GET /api/documents/:id`
 Retrieve metadata and permission list for a specific document.
-- **Response `200 OK`:**
-  ```json
-  {
-    "document": {
-      "id": "cm6xoy7vg0005n4112x8p8w1d",
-      "title": "⚡ Architecture & Distributed Systems Spec",
-      "icon": "⚡",
-      "isPublic": true,
-      "defaultRole": "EDITOR",
-      "ownerId": "cm6xoy7vg0000n4112x8p8w1a",
-      "userRole": "OWNER",
-      "permissions": [
-        {
-          "id": "perm_01",
-          "userId": "cm6xoy7vg0001n4112x8p8w1b",
-          "user": {
-            "id": "cm6xoy7vg0001n4112x8p8w1b",
-            "name": "Bob Martinez",
-            "email": "bob@example.com",
-            "color": "#10b981"
-          },
-          "role": "EDITOR"
-        }
-      ]
-    }
-  }
-  ```
 
 #### `PATCH /api/documents/:id`
 Update document title, icon, or public accessibility settings (Requires `EDITOR` or `OWNER`).
-- **Request Body:**
-  ```json
-  {
-    "title": "⚡ Updated Distributed Systems Architecture",
-    "isPublic": true
-  }
-  ```
 
 #### `DELETE /api/documents/:id`
 Delete a document and all related permissions, snapshots, and update logs (Requires `OWNER`).
-- **Response `200 OK`:** `{"message": "Document deleted successfully"}`
 
 #### `POST /api/documents/:id/permissions`
 Invite or update a collaborator's role by email (Requires `OWNER`).
-- **Request Body:**
-  ```json
-  {
-    "email": "bob@example.com",
-    "role": "EDITOR"
-  }
-  ```
 
 #### `DELETE /api/documents/:id/permissions/:targetUserId`
 Revoke a collaborator's access (Requires `OWNER`).
 
 ---
 
-### 4.3 Version History & Snapshots Module (`/api/documents/:id/history`)
+### 4.4 Version History & Snapshots Module (`/api/documents/:id/history`)
 
 #### `GET /api/documents/:id/history`
 List timeline snapshots for the document.
-- **Response `200 OK`:**
-  ```json
-  {
-    "snapshots": [
-      {
-        "id": "snap_02",
-        "version": 2,
-        "size": 1842,
-        "createdBy": "Bob Martinez (Added Checklist)",
-        "createdAt": "2026-08-19T07:15:00.000Z"
-      },
-      {
-        "id": "snap_01",
-        "version": 1,
-        "size": 1420,
-        "createdBy": "Alice Chen (Initial Creation)",
-        "createdAt": "2026-08-19T05:30:00.000Z"
-      }
-    ]
-  }
-  ```
 
 #### `GET /api/documents/:id/history/:snapshotId`
 Inspect the decoded text preview of a past snapshot.
-- **Response `200 OK`:**
-  ```json
-  {
-    "snapshot": {
-      "id": "snap_01",
-      "version": 1,
-      "size": 1420,
-      "previewText": "Architecture & Distributed Systems Spec\n1. Strong Eventual Consistency...",
-      "createdAt": "2026-08-19T05:30:00.000Z"
-    }
-  }
-  ```
 
 #### `POST /api/documents/:id/history/restore`
 Restore the active document state to a past snapshot (Requires `EDITOR` or `OWNER`).
-- **Request Body:**
-  ```json
-  {
-    "snapshotId": "snap_01"
-  }
-  ```
-- **Response `200 OK`:**
-  ```json
-  {
-    "message": "Restored document to version 1",
-    "snapshot": {
-      "id": "snap_03",
-      "version": 3,
-      "size": 1420,
-      "createdBy": "Restored to v1 by Alice Chen"
-    }
-  }
-  ```
 
 ---
 

@@ -119,6 +119,8 @@ npm run test
 ---
 
 ## 5. Tài Liệu Kỹ Thuật Chi Tiết (References)
+- [Offline-First Testing & Notion Editor Architecture Guide](file:///c:/laragon/www/collaborative/docs/offline-testing-and-notion-editor-guide.md)
+- [Deep Dive: CRDT, Hocuspocus & Distributed Systems](file:///c:/laragon/www/collaborative/docs/deep-dive-crdt-hocuspocus-distributed-systems.md)
 - [Distributed Systems Architecture & Data Flow](file:///c:/laragon/www/collaborative/docs/distributed-systems-architecture.md)
 - [API & WebSocket Interface Specification](file:///c:/laragon/www/collaborative/docs/api-and-websocket-contracts.md)
 - [Walkthrough & Verification Flow](file:///C:/Users/Go/.gemini/antigravity/brain/9aac5e43-4a89-4aa0-9093-00f4d8d88a38/walkthrough.md)

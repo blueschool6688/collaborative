@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import * as Y from "yjs";
 import { HocuspocusProvider } from "@hocuspocus/provider";
 import { IndexeddbPersistence } from "y-indexeddb";
@@ -6,16 +6,17 @@ import { useAuth } from "../context/AuthContext.js";
 
 export type SyncState = "connected" | "syncing" | "offline" | "error";
 
-export function useCollaboration(documentId: string | null) {
+export function useCollaboration(documentId: string | null, enabled: boolean = true) {
   const { token, user } = useAuth();
   const [syncState, setSyncState] = useState<SyncState>("syncing");
   const [isReady, setIsReady] = useState(false);
   const [provider, setProvider] = useState<HocuspocusProvider | null>(null);
+  const isAuthFailedRef = useRef(false);
 
   const ydoc = useMemo(() => new Y.Doc(), [documentId]);
 
   useEffect(() => {
-    if (!documentId) {
+    if (!documentId || !enabled) {
       setProvider(null);
       setIsReady(false);
       return;
@@ -23,12 +24,16 @@ export function useCollaboration(documentId: string | null) {
 
     setIsReady(false);
     setSyncState("syncing");
+    isAuthFailedRef.current = false;
 
     // 1. IndexedDB Persistence for instant local cache & offline-first
     const indexeddbProvider = new IndexeddbPersistence(`doc_${documentId}`, ydoc);
 
     indexeddbProvider.on("synced", () => {
-      setIsReady(true);
+      // Only set ready from IndexedDB if not currently in auth error state
+      if (!isAuthFailedRef.current) {
+        setIsReady(true);
+      }
     });
 
     // 2. Hocuspocus WebSocket Provider
@@ -39,9 +44,11 @@ export function useCollaboration(documentId: string | null) {
       document: ydoc,
       token: token || "",
       onConnect: () => {
+        isAuthFailedRef.current = false;
         setSyncState("connected");
       },
       onStatus: (data) => {
+        if (isAuthFailedRef.current) return;
         if (data.status === "connected") {
           setSyncState("connected");
         } else if (data.status === "connecting") {
@@ -51,13 +58,21 @@ export function useCollaboration(documentId: string | null) {
         }
       },
       onSynced: () => {
+        isAuthFailedRef.current = false;
         setIsReady(true);
+        setSyncState("connected");
       },
       onAuthenticationFailed: () => {
+        isAuthFailedRef.current = true;
         setSyncState("error");
+        setIsReady(false);
       },
       onClose: () => {
-        setSyncState("offline");
+        if (isAuthFailedRef.current) {
+          setSyncState("error");
+        } else {
+          setSyncState("offline");
+        }
       },
     });
 
@@ -85,7 +100,7 @@ export function useCollaboration(documentId: string | null) {
       indexeddbProvider.destroy();
       ydoc.destroy();
     };
-  }, [documentId, token, ydoc]);
+  }, [documentId, token, ydoc, enabled, user]);
 
   return {
     ydoc,

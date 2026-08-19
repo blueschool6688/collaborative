@@ -7,6 +7,7 @@ interface AuthContextType {
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
+  loginWithOAuth: (provider: "google" | "github", mockData?: { email: string; name: string; avatar?: string }) => Promise<void>;
   logout: () => void;
 }
 
@@ -55,6 +56,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(res.user);
   };
 
+  const loginWithOAuth = async (
+    provider: "google" | "github",
+    mockData?: { email: string; name: string; avatar?: string }
+  ) => {
+    // Generate default/mock payload for instant testing or use provided OAuth details
+    const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+    const email = mockData?.email || (provider === "google" ? `google.user${randomSuffix}@gmail.com` : `github_developer${randomSuffix}@github.com`);
+    const name = mockData?.name || (provider === "google" ? `Google User ${randomSuffix}` : `GitHub Dev ${randomSuffix}`);
+    const avatar = mockData?.avatar || (provider === "google" ? `https://api.dicebear.com/7.x/bottts/svg?seed=google_${randomSuffix}` : `https://api.dicebear.com/7.x/identicon/svg?seed=github_${randomSuffix}`);
+
+    const res = await api.auth.oauth({
+      provider,
+      email,
+      name,
+      avatar,
+      providerId: `${provider}_${randomSuffix}`,
+    });
+
+    localStorage.setItem("sync_craft_token", res.token);
+    setToken(res.token);
+    setUser(res.user);
+  };
+
   const logout = () => {
     localStorage.removeItem("sync_craft_token");
     setToken(null);
@@ -62,7 +86,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, isLoading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, token, isLoading, login, register, loginWithOAuth, logout }}>
       {children}
     </AuthContext.Provider>
   );
