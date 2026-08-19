@@ -133,19 +133,6 @@ To avoid disk I/O bottlenecks from keystroke-level database writes:
 
 ---
 
-## 👥 Pre-seeded Mock Test Accounts
-
-The PostgreSQL database comes pre-seeded with 4 test user accounts and 3 rich CRDT documents:
-
-| Name | Email | Password | Role / Color | Pre-seeded Ownership |
-| :--- | :--- | :--- | :--- | :--- |
-| **Alice Chen** | `alice@example.com` | `password123` | Lead Engineer (`#6366f1` Indigo) | Owner of *"⚡ Architecture & Distributed Systems Spec"* |
-| **Bob Martinez** | `bob@example.com` | `password123` | Product Manager (`#10b981` Emerald) | Owner of *"📋 Product Roadmap & Team Milestones 2026"* |
-| **Charlie Davis** | `charlie@example.com` | `password123` | UI/UX Designer (`#f59e0b` Amber) | Owner of *"🎨 Design System & Visual Hierarchy"* |
-| **Diana Ross** | `diana@example.com` | `password123` | QA Engineer (`#ec4899` Pink) | Editor on Doc 1 & Doc 2 |
-
----
-
 ## 📂 Monorepo Directory Structure
 
 ```
