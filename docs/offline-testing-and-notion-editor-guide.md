@@ -6,10 +6,10 @@ Tài liệu này giải thích chi tiết cách xử lý và kiểm thử kịch
 
 ## 📑 Mục Lục
 1. [Cơ Chế Xử Lý Khi Mất Internet (Offline-First Architecture)](#1-cơ-chế-xử-lý-khi-mất-internet-offline-first-architecture)
-2. [Các Test Case Xử Lý Offline & Hòa Giải Dữ Liệu](#2-các-test-case-xử-lý-offline--hòa-giải-dữ-liệu)
-3. [Hướng Dẫn Test Bằng Tay (Manual Browser Testing Với DevTools)](#3-hướng-dẫn-test-bằng-tay-manual-browser-testing-với-devtools)
-4. [Kiến Trúc UI Component Chuẩn Notion (Slash Command Menu `/`)](#4-kiến-trúc-ui-component-chuẩn-notion-slash-command-menu-)
-5. [Danh Sách Các Khối Block Kiểu Notion Đang Có](#5-danh-sách-các-khối-block-kiểu-notion-đang-có)
+2. [Tại Sao Test DevTools Giữa 2 Tab Cần Lưu Ý?](#2-tại-sao-test-devtools-giữa-2-tab-cần-lưu-ý)
+3. [Quy Trình Kiểm Thử 2 Client Offline Bằng DevTools](#3-quy-trình-kiểm-thử-2-client-offline-bằng-devtools)
+4. [Các Test Case Tự Động Hóa (Vitest Suite)](#4-các-test-case-tự-động-hóa-vitest-suite)
+5. [Kiến Trúc UI Component Chuẩn Notion (Slash Command Menu `/`)](#5-kiến-trúc-ui-component-chuẩn-notion-slash-command-menu-)
 
 ---
 
@@ -19,7 +19,7 @@ Trong các ứng dụng soạn thảo truyền thống, khi mất mạng, nếu 
 - Bị mất sạch chữ đã gõ khi offline.
 - Hoặc đè mất chữ của người khác đang online (Last-Write-Wins xung đột).
 
-Trong **SyncCraft**, chúng tôi giải quyết bài toán này qua **Bộ ba kết hợp**:
+Trong **SyncCraft**, bài toán này được giải quyết qua **Bộ ba kết hợp**:
 1. **`y-indexeddb` (Local Browser Database)**:
    - Lưu toàn bộ cây dữ liệu CRDT `Y.Doc` vào cơ sở dữ liệu IndexedDB của trình duyệt.
    - Khi tắt tab hoặc mất mạng, dữ liệu vẫn được lưu vĩnh viễn trên ổ cứng máy client.
@@ -34,68 +34,73 @@ Trong **SyncCraft**, chúng tôi giải quyết bài toán này qua **Bộ ba k�
 
 ---
 
-## 2. Các Test Case Xử Lý Offline & Hòa Giải Dữ Liệu
+## 2. Tại Sao Test DevTools Giữa 2 Tab Cần Lưu Ý?
 
-Đã được cài đặt và tự động hóa trong file test: [`server/tests/offline-reconciliation.test.ts`](file:///c:/laragon/www/collaborative/server/tests/offline-reconciliation.test.ts)
+Khi kiểm thử giả lập Offline bằng Chrome DevTools giữa 2 Tab trên cùng một máy, cần hiểu rõ 2 nguyên lý sau:
 
-### 🧪 Test Case 1: Client gõ offline rồi kết nối lại server
-- **Kịch bản**: 
-  1. Client A tải tài liệu từ Server.
-  2. Ngắt kết nối mạng của Client A.
-  3. Client A gõ thêm 500 từ và checklist.
-  4. Bật kết nối mạng trở lại.
-- **Kỳ vọng (Expectation)**:
-  - Client A gửi State Vector lên Server.
-  - Server nhận delta và cập nhật vào `Y.Doc` trên server.
-  - Nội dung của Client A và Server hội tụ 100% giống hệt nhau (`expect(clientText).toBe(serverText)`).
-
-### 🧪 Test Case 2: Chỉnh sửa đồng thời (Concurrent Edits) khi 1 người Offline và 1 người Online
-- **Kịch bản**:
-  1. Ban đầu Doc có tiêu đề `"Header Line"`.
-  2. Client A bị rớt mạng $\rightarrow$ Gõ thêm `"Client A offline note"` ở cuối trang.
-  3. Client B vẫn có mạng $\rightarrow$ Gõ thêm `"Client B announcement"` ở đầu trang.
-  4. Client A có mạng trở lại và reconnect.
-- **Kỳ vọng (Expectation)**:
-  - Cả 2 luồng chỉnh sửa tự động hòa giải.
-  - Văn bản cuối cùng của cả Server, Client A và Client B đều chứa đầy đủ cả thông báo của B lẫn ghi chú offline của A mà không ai bị mất chữ.
-
-### 🧪 Test Case 3: Chống lặp gói tin khi mạng chập chờn (Idempotency)
-- **Kịch bản**: Mạng lag khiến gói tin cập nhật offline bị gửi lại 5 lần liên tiếp.
-- **Kỳ vọng (Expectation)**: Phép toán `Y.applyUpdate()` đảm bảo $A \sqcup A = A$, văn bản không bị nhân đôi chữ.
+1. **Cơ Chế Local BroadcastChannel của Trình Duyệt**:
+   - Nếu bạn mở 2 Tab thông thường trên **cùng một trình duyệt Chrome** (cùng một Origin `http://localhost:5173`), trình duyệt sẽ chia sẻ chung bộ nhớ **IndexedDB**.
+   - Mặc định, các Tab cùng Origin có thể giao tiếp trực tiếp với nhau qua RAM bằng `BroadcastChannel`. Do đó, nếu Tab 1 bị giả lập Offline qua DevTools, Tab 2 vẫn có thể bắt được dữ liệu từ Tab 1 qua kênh nội bộ của trình duyệt chứ không phải qua mạng WebSocket!
+   - 🛠️ **Cách khắc phục**: Client đã cấu hình `broadcast: false` trên Provider để ép toàn bộ luồng truyền tin phải đi qua WebSocket Server.
+2. **Tách Biệt Session Giữa 2 Client**:
+   - Để kiểm thử chính xác 100% kịch bản mạng phân tán thực tế, **Client 1** và **Client 2** cần nằm ở 2 môi trường lưu trữ độc lập:
+     - **Tab 1**: Mở ở **Cửa sổ Chrome bình thường**.
+     - **Tab 2**: Mở ở **Cửa sổ Ẩn danh (Incognito `Ctrl + Shift + N`)** hoặc một trình duyệt khác (như Edge/Firefox).
 
 ---
 
-## 3. Hướng Dẫn Test Bằng Tay (Manual Browser Testing Với DevTools)
+## 3. Quy Trình Kiểm Thử 2 Client Offline Bằng DevTools
 
-Bạn có thể tự tay kiểm chứng tính năng Offline-First trên trình duyệt như sau:
+Dưới đây là 5 bước chuẩn xác nhất để kiểm chứng:
 
 ```
-+-----------------------------------------------------------------------------+
-| BƯỚC 1: Mở ứng dụng tại http://localhost:5173                               |
-| BƯỚC 2: Nhấn F12 (DevTools) -> Chuyển sang tab "Network"                    |
-| BƯỚC 3: Tại mục Throttling (mặc định "No throttling"), chọn "Offline"       |
-+-----------------------------------------------------------------------------+
-                                       │
-                                       ▼
-+-----------------------------------------------------------------------------+
-| BƯỚC 4: Gõ thêm 1 đoạn văn bản mới vào Editor                              |
-|         -> Quan sát Badge ở Header chuyển sang "⚪ Offline Cache"            |
-|         -> Đóng hoàn toàn tab trình duyệt và mở lại tab mới                 |
-|         -> Văn bản vẫn hiển thị nguyên vẹn (nhờ y-indexeddb)                |
-+-----------------------------------------------------------------------------+
-                                       │
-                                       ▼
-+-----------------------------------------------------------------------------+
-| BƯỚC 5: Trong tab Network của DevTools, chuyển lại "No throttling" (Online) |
-|         -> Badge ở Header chuyển ngay sang "🟢 Saved to Cloud"              |
-|         -> Mở 1 cửa sổ ẩn danh khác: đoạn văn bản gõ lúc offline lập tức    |
-|            xuất hiện trên cửa sổ kia theo thời gian thực!                   |
-+-----------------------------------------------------------------------------+
++---------------------------------------------------------------------------------------+
+| BƯỚC 1: Mở Tab 1 (Chrome Thường) và Tab 2 (Ẩn Danh Incognito) cùng vào 1 Document     |
+|         -> Cả 2 tab đều hiển thị "🟢 Saved" trên Header.                              |
++---------------------------------------------------------------------------------------+
+                                           │
+                                           ▼
++---------------------------------------------------------------------------------------+
+| BƯỚC 2: Trên Tab 1, nhấn F12 (DevTools) -> Chuyển sang tab "Network"                  |
+|         -> Tại mục Throttling (mặc định "No throttling"), chọn "Offline".             |
+|         -> Quan sát Badge trên Header Tab 1 chuyển sang "⚪ Offline".                 |
++---------------------------------------------------------------------------------------+
+                                           │
+                                           ▼
++---------------------------------------------------------------------------------------+
+| BƯỚC 3: Trên Tab 1 (đang Offline): Gõ thêm 1 dòng text:                               |
+|         "==> Dòng này được Tab 1 gõ khi hoàn toàn mất mạng <=="                       |
+|         -> Tab 2 (đang Online) KHÔNG nhìn thấy dòng này (do Tab 1 đang ngắt kết nối).|
++---------------------------------------------------------------------------------------+
+                                           │
+                                           ▼
++---------------------------------------------------------------------------------------+
+| BƯỚC 4: Trên Tab 2 (đang Online): Gõ thêm 1 dòng text khác:                          |
+|         "==> Dòng này do Tab 2 gõ độc lập cùng thời điểm <=="                         |
++---------------------------------------------------------------------------------------+
+                                           │
+                                           ▼
++---------------------------------------------------------------------------------------+
+| BƯỚC 5: Trên Tab 1, tại tab Network của DevTools: Chọn lại "No throttling" (Online)   |
+|         -> Tab 1 lập tức Reconnect lại Server WebSocket.                              |
+|         -> CẢ 2 TAB TỰ ĐỘNG HÒA GIẢI: Xuất hiện đầy đủ cả 2 dòng văn bản của          |
+|            Tab 1 và Tab 2 mà không ai bị đè hay mất chữ!                              |
++---------------------------------------------------------------------------------------+
 ```
 
 ---
 
-## 4. Kiến Trúc UI Component Chuẩn Notion (Slash Command Menu `/`)
+## 4. Các Test Case Tự Động Hóa (Vitest Suite)
+
+Các kịch bản trên đã được tự động hóa và vượt qua 100% trong file test: [`server/tests/offline-reconciliation.test.ts`](file:///c:/laragon/www/collaborative/server/tests/offline-reconciliation.test.ts)
+
+- **Test 1**: Client A gõ offline $\rightarrow$ Reconnect $\rightarrow$ Server nhận và cập nhật đầy đủ.
+- **Test 2**: Client A (offline) và Client B (online) gõ đồng thời $\rightarrow$ Hòa giải State Vector hai chiều thành công không xung đột.
+- **Test 3**: Gói tin cập nhật offline gửi lặp lại nhiều lần $\rightarrow$ Tính chất giao hoán và lũy đẳng (Idempotence) ngăn chặn trùng lặp văn bản.
+
+---
+
+## 5. Kiến Trúc UI Component Chuẩn Notion (Slash Command Menu `/`)
 
 Menu lệnh gõ `/` được xây dựng bằng component [`client/src/components/editor/SlashCommandMenu.tsx`](file:///c:/laragon/www/collaborative/client/src/components/editor/SlashCommandMenu.tsx):
 
@@ -124,13 +129,3 @@ Menu lệnh gõ `/` được xây dựng bằng component [`client/src/component
 |  [`]  Inline Code       Format short inline variable.             [`] |
 +-----------------------------------------------------------------------+
 ```
-
-### Các Tính Năng Đỉnh Cao Của Menu `/`:
-1. **Phân nhóm chuyên nghiệp**: Phân tách rõ ràng thành *Basic Blocks*, *Lists & Tasks*, và *Advanced & Structure*.
-2. **Tìm kiếm tức thì (Live Fuzzy Search)**: Gõ `/h1`, `/task`, `/code`, `/table`, `/note` $\rightarrow$ menu tự lọc kết quả trong 0ms.
-3. **Phím tắt điều hướng bàn phím**:
-   - `↑` / `↓`: Di chuyển chọn block.
-   - `Enter`: Chèn block vào vị trí con trỏ và tự động xóa dấu `/` vừa gõ.
-   - `Esc`: Đóng menu.
-4. **Floating Bubble Menu**: Bôi đen bất kỳ đoạn văn bản nào để mở thanh công cụ nổi nhanh (Đổi màu highlight, bôi đậm, in nghiêng, gạch ngang, chèn link, code inline).
-5. **Interactive Table Bar**: Khi bấm vào bảng, xuất hiện thanh công cụ nổi cho phép thêm/xóa hàng, thêm/xóa cột, và xóa bảng chỉ với 1 click.

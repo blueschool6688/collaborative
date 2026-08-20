@@ -37,12 +37,13 @@ export function useCollaboration(documentId: string | null, enabled: boolean = t
     });
 
     // 2. Hocuspocus WebSocket Provider
-    const wsUrl = `ws://${window.location.hostname}:4000`;
+    const wsUrl = `ws://${window.location.hostname || "localhost"}:4000`;
     const hocuspocus = new HocuspocusProvider({
       url: wsUrl,
       name: documentId,
       document: ydoc,
       token: token || "",
+      broadcast: false, // Ensure sync goes through WebSocket server for accurate multi-tab testing
       onConnect: () => {
         isAuthFailedRef.current = false;
         setSyncState("connected");
@@ -76,6 +77,22 @@ export function useCollaboration(documentId: string | null, enabled: boolean = t
       },
     });
 
+    // 3. Instant browser network event listener (for DevTools Offline/Online toggles)
+    const handleOnline = () => {
+      if (!isAuthFailedRef.current) {
+        setSyncState("syncing");
+        hocuspocus.connect();
+      }
+    };
+
+    const handleOffline = () => {
+      setSyncState("offline");
+      hocuspocus.disconnect();
+    };
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+
     // Set local awareness user state
     if (user) {
       hocuspocus.setAwarenessField("user", {
@@ -96,6 +113,8 @@ export function useCollaboration(documentId: string | null, enabled: boolean = t
     setProvider(hocuspocus);
 
     return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
       hocuspocus.destroy();
       indexeddbProvider.destroy();
       ydoc.destroy();
