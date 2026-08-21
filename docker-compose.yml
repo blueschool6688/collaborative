@@ -40,7 +40,7 @@ services:
   # ==========================================
   # 3. Backend API & Hocuspocus CRDT Server
   # ==========================================
-  server:
+  server_sync_craft:
     build:
       context: ./server
       dockerfile: Dockerfile
@@ -58,7 +58,7 @@ services:
   # ==========================================
   # 4. Frontend Client (Nginx Static + Reverse Proxy)
   # ==========================================
-  client:
+  client_sync_craft:
     build:
       context: ./client
       dockerfile: Dockerfile
