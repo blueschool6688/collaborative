@@ -51,14 +51,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* Workspace Brand Header */}
         <div className="p-3.5 flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800/80">
           <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-brand-600 flex items-center justify-center text-white shadow-sm shadow-brand-500/20">
-              <Sparkle size={16} weight="fill" />
-            </div>
             <div className="flex flex-col">
-              <span className="text-xs font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">
+              <span className="text-lg font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">
                 SyncCraft
               </span>
-              <span className="text-[10px] text-zinc-400 font-mono">CRDT Workspace</span>
             </div>
           </div>
 
@@ -127,11 +123,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     onSelectDoc(doc.id);
                     if (onCloseMobile) onCloseMobile();
                   }}
-                  className={`group flex items-center justify-between px-2.5 py-2 rounded-lg text-xs cursor-pointer transition-all ${
-                    isActive
-                      ? "bg-brand-500/10 text-brand-600 dark:text-brand-400 font-medium border border-brand-500/20"
-                      : "text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-900 border border-transparent"
-                  }`}
+                  className={`group flex items-center justify-between px-2.5 py-2 rounded-lg text-xs cursor-pointer transition-all ${isActive
+                    ? "bg-brand-500/10 text-brand-600 dark:text-brand-400 font-medium border border-brand-500/20"
+                    : "text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-900 border border-transparent"
+                    }`}
                 >
                   <div className="flex items-center gap-2 min-w-0 flex-1">
                     <span className="text-sm shrink-0">{doc.icon || "📝"}</span>
@@ -165,12 +160,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
               );
             })
           )}
-        </div>
-
-        {/* Sidebar Footer */}
-        <div className="p-3 border-t border-zinc-200 dark:border-zinc-800/80 flex items-center justify-between text-[11px] text-zinc-400">
-          <span className="font-mono">CRDT • Yjs + Postgres</span>
-          <span className="w-2 h-2 rounded-full bg-emerald-500" title="Engine Online" />
         </div>
       </aside>
     </>
