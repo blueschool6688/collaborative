@@ -11,8 +11,8 @@ interface AdminLoginPageProps {
 
 export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({ onSuccess, onBackToWorkspace }) => {
   const { login } = useAuth();
-  const [email, setEmail] = useState("admin@example.com");
-  const [password, setPassword] = useState("password123");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -29,11 +29,6 @@ export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({ onSuccess, onBac
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleFillDemo = () => {
-    setEmail("admin@example.com");
-    setPassword("password123");
   };
 
   return (
@@ -61,7 +56,7 @@ export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({ onSuccess, onBac
         {/* Login Form */}
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <Input
-            label="Administrator Email"
+            label="Email"
             type="email"
             placeholder="admin@example.com"
             value={email}
@@ -71,7 +66,7 @@ export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({ onSuccess, onBac
           />
 
           <Input
-            label="Master Password"
+            label="Password"
             type="password"
             placeholder="••••••••"
             value={password}
@@ -85,24 +80,9 @@ export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({ onSuccess, onBac
             isLoading={isLoading}
             className="w-full bg-rose-600 hover:bg-rose-500 text-white font-semibold shadow-lg shadow-rose-500/20 py-2.5 mt-2"
           >
-            Authenticate & Access Portal
+            Login
           </Button>
-
-          {/* Quick Demo Helper */}
-          <button
-            type="button"
-            onClick={handleFillDemo}
-            className="flex items-center justify-center gap-2 text-[11px] text-zinc-500 hover:text-rose-400 font-mono transition-colors pt-2"
-          >
-            <Key size={13} />
-            <span>Quick-fill Default Super Admin (admin@example.com / password123)</span>
-          </button>
         </form>
-      </div>
-
-      {/* Footer System Version */}
-      <div className="mt-6 text-center text-[11px] text-zinc-600 font-mono">
-        CRDT Distributed Engine • Super Admin Security Layer v2.0
       </div>
     </div>
   );
