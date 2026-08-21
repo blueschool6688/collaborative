@@ -4,7 +4,7 @@ import * as Y from "yjs";
 import { prisma } from "../db.js";
 import { requireAdmin, AuthenticatedRequest } from "../auth/auth.middleware.js";
 
-const router = Router();
+const router: Router = Router();
 
 // In-memory runtime system settings with safe defaults
 let systemSettings = {

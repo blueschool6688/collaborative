@@ -5,7 +5,7 @@ import { signToken } from "../auth/jwt.js";
 import { requireAuth, AuthenticatedRequest } from "../auth/auth.middleware.js";
 import { config } from "../config.js";
 
-const router = Router();
+const router: Router = Router();
 
 const USER_COLORS = [
   "#6366f1", // Indigo
@@ -24,7 +24,6 @@ function getRandomColor(): string {
   return USER_COLORS[Math.floor(Math.random() * USER_COLORS.length)];
 }
 
-// GET /api/auth/providers - Status of configured OAuth providers
 router.get("/providers", (_req, res) => {
   res.json({
     google: Boolean(config.googleClientId && config.googleClientSecret),
@@ -32,7 +31,6 @@ router.get("/providers", (_req, res) => {
   });
 });
 
-// POST /api/auth/register
 router.post("/register", async (req, res): Promise<void> => {
   try {
     const { email, password, name } = req.body;
@@ -198,7 +196,7 @@ router.get("/google/callback", async (req, res): Promise<void> => {
       }),
     });
 
-    const tokenData = await tokenRes.json();
+    const tokenData: any = await tokenRes.json();
     if (!tokenRes.ok || !tokenData.access_token) {
       console.error("Google token exchange error:", tokenData);
       res.redirect(
@@ -210,7 +208,7 @@ router.get("/google/callback", async (req, res): Promise<void> => {
     const userRes = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
       headers: { Authorization: `Bearer ${tokenData.access_token}` },
     });
-    const profile = await userRes.json();
+    const profile: any = await userRes.json();
 
     if (!profile.email) {
       res.redirect(`${config.clientUrl}?auth_error=No+email+returned+from+Google`);
@@ -298,7 +296,7 @@ router.get("/github/callback", async (req, res): Promise<void> => {
       }),
     });
 
-    const tokenData = await tokenRes.json();
+    const tokenData: any = await tokenRes.json();
     if (!tokenRes.ok || !tokenData.access_token) {
       console.error("GitHub token exchange error:", tokenData);
       res.redirect(
@@ -313,7 +311,7 @@ router.get("/github/callback", async (req, res): Promise<void> => {
         "User-Agent": "SyncCraft-Collaborative-App",
       },
     });
-    const profile = await userRes.json();
+    const profile: any = await userRes.json();
 
     let email = profile.email;
     if (!email) {
@@ -324,7 +322,7 @@ router.get("/github/callback", async (req, res): Promise<void> => {
         },
       });
       if (emailRes.ok) {
-        const emails = await emailRes.json();
+        const emails: any = await emailRes.json();
         const primary = emails.find((e: any) => e.primary && e.verified) || emails[0];
         if (primary) email = primary.email;
       }
