@@ -15,6 +15,10 @@ import {
   LightbulbFilament,
   Highlighter,
   Code,
+  Image as ImageIcon,
+  WarningOctagon,
+  CheckCircle,
+  Function as MathIcon,
 } from "@phosphor-icons/react";
 
 interface SlashCommandMenuProps {
@@ -24,9 +28,9 @@ interface SlashCommandMenuProps {
   position: { top: number; left: number };
 }
 
-interface CommandItem {
+export interface CommandItem {
   title: string;
-  category: "Basic Blocks" | "Lists & Tasks" | "Advanced & Structure";
+  category: "Basic Blocks" | "Lists & Tasks" | "Advanced & Structure" | "Callouts & Embeds";
   description: string;
   shortcut?: string;
   icon: React.ReactNode;
@@ -44,11 +48,11 @@ export const SlashCommandMenu: React.FC<SlashCommandMenuProps> = ({
   const menuRef = useRef<HTMLDivElement>(null);
 
   const commands: CommandItem[] = [
-    // Basic Blocks
+    // 1. Basic Blocks
     {
       title: "Text",
       category: "Basic Blocks",
-      description: "Just start writing plain text.",
+      description: "Just start writing plain paragraph text.",
       shortcut: "p",
       icon: <TextT size={18} />,
       action: (ed) => ed.chain().focus().setParagraph().run(),
@@ -80,13 +84,13 @@ export const SlashCommandMenu: React.FC<SlashCommandMenuProps> = ({
     {
       title: "Divider",
       category: "Basic Blocks",
-      description: "Visually divide blocks with a thin separator rule.",
+      description: "Visually divide blocks with a separator rule.",
       shortcut: "---",
       icon: <Minus size={18} />,
       action: (ed) => ed.chain().focus().setHorizontalRule().run(),
     },
 
-    // Lists & Tasks
+    // 2. Lists & Tasks
     {
       title: "Bullet List",
       category: "Lists & Tasks",
@@ -112,7 +116,7 @@ export const SlashCommandMenu: React.FC<SlashCommandMenuProps> = ({
       action: (ed) => ed.chain().focus().toggleTaskList().run(),
     },
 
-    // Advanced & Structure
+    // 3. Advanced & Structure
     {
       title: "Code Snippet",
       category: "Advanced & Structure",
@@ -131,26 +135,20 @@ export const SlashCommandMenu: React.FC<SlashCommandMenuProps> = ({
         ed.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(),
     },
     {
-      title: "Callout / Note Box",
-      category: "Advanced & Structure",
-      description: "Highlight important context with an emoji callout box.",
-      shortcut: "note",
-      icon: <LightbulbFilament size={18} weight="fill" className="text-amber-400" />,
-      action: (ed) => {
-        ed.chain()
-          .focus()
-          .toggleBlockquote()
-          .insertContent("💡 **Note:** ")
-          .run();
-      },
-    },
-    {
       title: "Quote",
       category: "Advanced & Structure",
-      description: "Capture a quotation or citation.",
+      description: "Capture a quotation or citation block.",
       shortcut: ">",
       icon: <Quotes size={18} />,
       action: (ed) => ed.chain().focus().toggleBlockquote().run(),
+    },
+    {
+      title: "Inline Code",
+      category: "Advanced & Structure",
+      description: "Format short inline variable or command.",
+      shortcut: "`",
+      icon: <Code size={18} />,
+      action: (ed) => ed.chain().focus().toggleCode().run(),
     },
     {
       title: "Highlight Text",
@@ -161,12 +159,59 @@ export const SlashCommandMenu: React.FC<SlashCommandMenuProps> = ({
       action: (ed) => ed.chain().focus().toggleHighlight({ color: "#fef08a" }).run(),
     },
     {
-      title: "Inline Code",
+      title: "Math / LaTeX Formula",
       category: "Advanced & Structure",
-      description: "Format short inline variable or command.",
-      shortcut: "`",
-      icon: <Code size={18} />,
-      action: (ed) => ed.chain().focus().toggleCode().run(),
+      description: "Insert mathematical expression placeholder block.",
+      shortcut: "math",
+      icon: <MathIcon size={18} className="text-indigo-400" />,
+      action: (ed) => {
+        ed.chain().focus().insertContent("`$$ f(x) = \\int_{-\\infty}^{\\infty} e^{-x^2} dx $$` ").run();
+      },
+    },
+
+    // 4. Callouts & Embeds
+    {
+      title: "Info Callout Box",
+      category: "Callouts & Embeds",
+      description: "Highlight context with an emoji note box.",
+      shortcut: "note",
+      icon: <LightbulbFilament size={18} weight="fill" className="text-amber-400" />,
+      action: (ed) => {
+        ed.chain().focus().toggleBlockquote().insertContent("💡 **Note:** ").run();
+      },
+    },
+    {
+      title: "Warning Callout Box",
+      category: "Callouts & Embeds",
+      description: "Draw attention to cautionary items.",
+      shortcut: "warn",
+      icon: <WarningOctagon size={18} weight="fill" className="text-rose-400" />,
+      action: (ed) => {
+        ed.chain().focus().toggleBlockquote().insertContent("⚠️ **Warning:** ").run();
+      },
+    },
+    {
+      title: "Success Tip Box",
+      category: "Callouts & Embeds",
+      description: "Share best practices or tips.",
+      shortcut: "tip",
+      icon: <CheckCircle size={18} weight="fill" className="text-emerald-400" />,
+      action: (ed) => {
+        ed.chain().focus().toggleBlockquote().insertContent("✅ **Tip:** ").run();
+      },
+    },
+    {
+      title: "Image Link",
+      category: "Callouts & Embeds",
+      description: "Embed an external web image via URL.",
+      shortcut: "img",
+      icon: <ImageIcon size={18} className="text-blue-400" />,
+      action: (ed) => {
+        const url = window.prompt("Enter Image URL (e.g. https://example.com/image.png):");
+        if (url && url.trim()) {
+          ed.chain().focus().insertContent(`![Image](${url.trim()})`).run();
+        }
+      },
     },
   ];
 
@@ -174,12 +219,24 @@ export const SlashCommandMenu: React.FC<SlashCommandMenuProps> = ({
     (cmd) =>
       cmd.title.toLowerCase().includes(query.toLowerCase()) ||
       cmd.description.toLowerCase().includes(query.toLowerCase()) ||
-      (cmd.shortcut && cmd.shortcut.toLowerCase().includes(query.toLowerCase()))
+      (cmd.shortcut && cmd.shortcut.toLowerCase().includes(query.toLowerCase())) ||
+      cmd.category.toLowerCase().includes(query.toLowerCase())
   );
 
   useEffect(() => {
     setSelectedIndex(0);
   }, [query]);
+
+  const executeCommand = (cmd: CommandItem) => {
+    if (!editor) return;
+    const { state } = editor;
+    const { from } = state.selection;
+    
+    // Safely delete the slash trigger character
+    editor.commands.deleteRange({ from: Math.max(0, from - 1), to: from });
+    cmd.action(editor);
+    onClose();
+  };
 
   useEffect(() => {
     if (!isOpen) {
@@ -196,13 +253,8 @@ export const SlashCommandMenu: React.FC<SlashCommandMenuProps> = ({
         setSelectedIndex((prev) => (prev - 1 + filteredCommands.length) % (filteredCommands.length || 1));
       } else if (e.key === "Enter") {
         e.preventDefault();
-        if (filteredCommands[selectedIndex] && editor) {
-          // Remove the slash typed
-          const { state } = editor;
-          const { from } = state.selection;
-          editor.commands.deleteRange({ from: Math.max(0, from - 1), to: from });
-          filteredCommands[selectedIndex].action(editor);
-          onClose();
+        if (filteredCommands[selectedIndex]) {
+          executeCommand(filteredCommands[selectedIndex]);
         }
       } else if (e.key === "Escape") {
         onClose();
@@ -215,23 +267,31 @@ export const SlashCommandMenu: React.FC<SlashCommandMenuProps> = ({
 
   if (!isOpen) return null;
 
-  // Group commands by category
-  const categories = Array.from(new Set(filteredCommands.map((c) => c.category)));
+  // Group commands by category in ordered list
+  const categoryOrder: Array<CommandItem["category"]> = [
+    "Basic Blocks",
+    "Lists & Tasks",
+    "Advanced & Structure",
+    "Callouts & Embeds",
+  ];
+  const presentCategories = categoryOrder.filter((cat) =>
+    filteredCommands.some((c) => c.category === cat)
+  );
 
   return (
     <div
       ref={menuRef}
       style={{
-        top: `${Math.min(position.top, window.innerHeight - 420)}px`,
-        left: `${Math.min(position.left, window.innerWidth - 340)}px`,
+        top: `${Math.min(position.top, window.innerHeight - 440)}px`,
+        left: `${Math.min(position.left, window.innerWidth - 350)}px`,
       }}
-      className="fixed z-50 w-80 rounded-xl bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border border-zinc-200 dark:border-zinc-800 shadow-2xl shadow-black/50 overflow-hidden flex flex-col p-1.5 animate-slide-down"
+      className="fixed z-50 w-80 sm:w-84 rounded-xl bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border border-zinc-200 dark:border-zinc-800 shadow-2xl shadow-black/50 overflow-hidden flex flex-col p-1.5 animate-slide-down"
     >
       {/* Search Header */}
       <div className="px-2 py-1.5 mb-1 flex items-center gap-2 border-b border-zinc-100 dark:border-zinc-800/80">
         <input
           type="text"
-          placeholder="Filter blocks (e.g. h1, list, code, table, note)..."
+          placeholder="Filter blocks (e.g. h1, code, table, note, warn)..."
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           autoFocus
@@ -245,9 +305,9 @@ export const SlashCommandMenu: React.FC<SlashCommandMenuProps> = ({
       {/* Commands List grouped by category */}
       <div className="flex flex-col max-h-80 overflow-y-auto gap-1 pr-1 custom-scrollbar">
         {filteredCommands.length === 0 ? (
-          <div className="p-4 text-xs text-zinc-500 text-center">No matching Notion block found</div>
+          <div className="p-4 text-xs text-zinc-500 text-center">No matching block found</div>
         ) : (
-          categories.map((cat) => {
+          presentCategories.map((cat) => {
             const catCommands = filteredCommands.filter((c) => c.category === cat);
             return (
               <div key={cat} className="flex flex-col gap-0.5">
@@ -261,15 +321,7 @@ export const SlashCommandMenu: React.FC<SlashCommandMenuProps> = ({
                     <button
                       key={cmd.title}
                       type="button"
-                      onClick={() => {
-                        if (editor) {
-                          const { state } = editor;
-                          const { from } = state.selection;
-                          editor.commands.deleteRange({ from: Math.max(0, from - 1), to: from });
-                          cmd.action(editor);
-                          onClose();
-                        }
-                      }}
+                      onClick={() => executeCommand(cmd)}
                       onMouseEnter={() => setSelectedIndex(globalIndex)}
                       className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-left transition-colors ${
                         isSelected

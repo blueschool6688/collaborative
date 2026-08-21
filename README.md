@@ -266,6 +266,9 @@ npm run dev
 
 ## 📚 Documentation Directory
 
+- ⚡ [**Master Guide: End-to-End Workflow & Issue Resolution Matrix**](docs/comprehensive-project-workflow-and-issue-resolution-guide.md) — Comprehensive technical breakdown of all 5 system workflows and deep-dive resolution of 9 distributed issues.
+- 🐳 [**Docker Deployment & Containerization Guide**](docs/docker-deployment-guide.md) — Multi-stage Docker build, Nginx reverse proxy, and docker-compose orchestration.
+- ⌨️ [**Slash Command (`/`) Customization Guide**](docs/slash-command-customization-guide.md) — Step-by-step guide to adding, editing, and customizing TipTap slash commands and blocks.
 - 🧪 [**Offline-First Testing & Notion Editor Architecture Guide**](docs/offline-testing-and-notion-editor-guide.md) — Comprehensive guide on offline testing scenarios, state vector reconciliation, and Notion-like Slash Menu `/` components.
 - 🧠 [**Deep Dive: CRDT, Hocuspocus & Distributed Systems**](docs/deep-dive-crdt-hocuspocus-distributed-systems.md) — Comprehensive explanation of distributed data flow, CRDT YATA mechanics, and Hocuspocus vs raw WebSockets.
 - 📐 [**Distributed Systems Architecture & Data Flow**](docs/distributed-systems-architecture.md) — Mathematical proofs, CAP theorems, State Vector mechanics, and Redis mesh topologies.

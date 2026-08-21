@@ -38,10 +38,7 @@ export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({ onSuccess, onBac
 
   return (
     <div className="min-h-screen w-screen bg-zinc-950 flex flex-col items-center justify-center p-4 select-none relative overflow-hidden font-sans">
-      {/* Ambient background glow */}
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-rose-500/10 rounded-full blur-3xl pointer-events-none" />
-
-      {/* Return to workspace link */}
       <div className="absolute top-6 left-6 z-10">
         <button
           onClick={onBackToWorkspace}
@@ -53,21 +50,6 @@ export const AdminLoginPage: React.FC<AdminLoginPageProps> = ({ onSuccess, onBac
       </div>
 
       <div className="w-full max-w-md bg-zinc-900/90 border border-zinc-800 backdrop-blur-xl p-8 rounded-2xl shadow-2xl z-10 flex flex-col gap-6">
-        {/* Brand & Security Badge Header */}
-        <div className="flex flex-col items-center text-center gap-2">
-          <div className="w-14 h-14 rounded-2xl bg-rose-500/15 border border-rose-500/30 flex items-center justify-center text-rose-500 mb-1 shadow-lg shadow-rose-500/10">
-            <ShieldCheck size={32} weight="fill" />
-          </div>
-          <div className="flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-widest text-rose-400 font-semibold">
-            <Sparkle size={13} weight="fill" />
-            <span>Admin Security Gateway</span>
-          </div>
-          <h1 className="text-xl font-bold text-zinc-100 tracking-tight">SyncCraft Platform Governance</h1>
-          <p className="text-xs text-zinc-400 max-w-xs">
-            Sign in with Super Administrator privileges to manage users, documents, and cluster telemetry.
-          </p>
-        </div>
-
         {/* Error Alert */}
         {error && (
           <div className="p-3 text-xs bg-rose-500/15 text-rose-400 border border-rose-500/30 rounded-xl flex items-center gap-2">

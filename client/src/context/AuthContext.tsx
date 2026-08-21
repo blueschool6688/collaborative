@@ -8,6 +8,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
   loginWithOAuth: (provider: "google" | "github", mockData?: { email: string; name: string; avatar?: string }) => Promise<void>;
+  redirectToOAuth: (provider: "google" | "github") => void;
   logout: () => void;
 }
 
@@ -20,8 +21,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     async function loadUser() {
-      const storedToken = localStorage.getItem("sync_craft_token");
-      if (!storedToken) {
+      // 1. Check for OAuth callback token in URL query params (?token=xxx)
+      if (typeof window !== "undefined") {
+        const params = new URLSearchParams(window.location.search);
+        const urlToken = params.get("token");
+        if (urlToken) {
+          localStorage.setItem("sync_craft_token", urlToken);
+          setToken(urlToken);
+          params.delete("token");
+          const newSearch = params.toString() ? `?${params.toString()}` : "";
+          window.history.replaceState({}, "", `${window.location.pathname}${newSearch}`);
+        }
+      }
+
+      const currentToken = localStorage.getItem("sync_craft_token");
+      if (!currentToken) {
         setIsLoading(false);
         return;
       }
@@ -56,11 +70,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(res.user);
   };
 
+  // Redirect to real OAuth consent screen
+  const redirectToOAuth = (provider: "google" | "github") => {
+    window.location.href = `/api/auth/${provider}`;
+  };
+
+  // Direct/Instant OAuth handler (with optional mock fallback)
   const loginWithOAuth = async (
     provider: "google" | "github",
     mockData?: { email: string; name: string; avatar?: string }
   ) => {
-    // Generate default/mock payload for instant testing or use provided OAuth details
     const randomSuffix = Math.floor(1000 + Math.random() * 9000);
     const email = mockData?.email || (provider === "google" ? `google.user${randomSuffix}@gmail.com` : `github_developer${randomSuffix}@github.com`);
     const name = mockData?.name || (provider === "google" ? `Google User ${randomSuffix}` : `GitHub Dev ${randomSuffix}`);
@@ -86,7 +105,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, isLoading, login, register, loginWithOAuth, logout }}>
+    <AuthContext.Provider value={{ user, token, isLoading, login, register, loginWithOAuth, redirectToOAuth, logout }}>
       {children}
     </AuthContext.Provider>
   );

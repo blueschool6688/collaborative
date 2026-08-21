@@ -17,8 +17,6 @@ import { Sparkle, Plus, LockKey, ShieldWarning } from "@phosphor-icons/react";
 
 export function App() {
   const { user, token, isLoading: isAuthLoading } = useAuth();
-  
-  // Path Router State
   const [currentPath, setCurrentPath] = useState<string>(() => {
     if (typeof window !== "undefined") {
       const p = window.location.pathname;
@@ -56,7 +54,6 @@ export function App() {
   const [docError, setDocError] = useState<string | null>(null);
   const [isLoadingDoc, setIsLoadingDoc] = useState(false);
 
-  // Responsive sidebar: open by default on desktop, closed by default on mobile screens
   const [isSidebarOpen, setIsSidebarOpen] = useState(() => {
     if (typeof window !== "undefined") {
       return window.innerWidth >= 768;
@@ -69,7 +66,6 @@ export function App() {
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
 
-  // Sync activeDocId with URL query params when on workspace view
   useEffect(() => {
     if (currentPath === "/" && activeDocId) {
       const url = new URL(window.location.href);
@@ -80,7 +76,6 @@ export function App() {
     }
   }, [activeDocId, currentPath]);
 
-  // Load documents list for authenticated user
   const loadDocuments = useCallback(async () => {
     if (!token) {
       setDocuments([]);
@@ -89,8 +84,6 @@ export function App() {
     try {
       const res = await api.documents.list();
       setDocuments(res.documents);
-
-      // If no activeDocId is set, default to first document
       setActiveDocId((prev) => {
         if (!prev && res.documents.length > 0) {
           return res.documents[0].id;
@@ -108,7 +101,6 @@ export function App() {
     }
   }, [isAuthLoading, loadDocuments]);
 
-  // Load active document details when activeDocId or token changes
   useEffect(() => {
     let isCancelled = false;
 
@@ -127,7 +119,6 @@ export function App() {
         if (!isCancelled) {
           setActiveDoc(res.document);
           setDocError(null);
-          // If document isn't in documents list yet (e.g. opened via shared link), add it
           setDocuments((prev) => {
             if (!prev.some((d) => d.id === res.document.id)) {
               return [res.document, ...prev];
@@ -154,8 +145,6 @@ export function App() {
       isCancelled = true;
     };
   }, [activeDocId, token, currentPath]);
-
-  // Initialize collaboration engine only when active document is loaded without error
   const isCollabEnabled = Boolean(activeDocId && !docError && activeDoc !== null && currentPath === "/");
   const { ydoc, provider, syncState, isReady } = useCollaboration(activeDocId, isCollabEnabled);
   const { collaborators } = useAwareness(provider);
@@ -223,9 +212,6 @@ export function App() {
     );
   }
 
-  // ==========================================
-  // ROUTE 1: Dedicated Admin Login (/admin/login)
-  // ==========================================
   if (currentPath === "/admin/login") {
     return (
       <AdminLoginPage
@@ -235,11 +221,7 @@ export function App() {
     );
   }
 
-  // ==========================================
-  // ROUTE 2: Dedicated Admin Portal (/admin)
-  // ==========================================
   if (currentPath === "/admin") {
-    // If not authenticated as admin, prompt Admin Login screen
     if (!user || user.systemRole !== "ADMIN") {
       return (
         <AdminLoginPage
@@ -261,12 +243,8 @@ export function App() {
     );
   }
 
-  // ==========================================
-  // ROUTE 3: Main Collaborative Workspace (/)
-  // ==========================================
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 font-sans">
-      {/* Sidebar Navigation */}
       <Sidebar
         documents={documents}
         activeDocId={activeDocId}

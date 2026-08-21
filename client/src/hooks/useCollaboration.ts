@@ -37,7 +37,7 @@ export function useCollaboration(documentId: string | null, enabled: boolean = t
     });
 
     // 2. Hocuspocus WebSocket Provider
-    const wsUrl = `ws://${window.location.hostname || "localhost"}:4000`;
+    const wsUrl = import.meta.env.VITE_WS_URL || `ws://${window.location.hostname || "localhost"}:4000`;
     const hocuspocus = new HocuspocusProvider({
       url: wsUrl,
       name: documentId,
