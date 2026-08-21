@@ -37,9 +37,6 @@ services:
   #     timeout: 5s
   #     retries: 5
 
-  # ==========================================
-  # 3. Backend API & Hocuspocus CRDT Server
-  # ==========================================
   server_sync_craft:
     build:
       context: ./server
@@ -55,9 +52,6 @@ services:
       redis:
         condition: service_healthy
 
-  # ==========================================
-  # 4. Frontend Client (Nginx Static + Reverse Proxy)
-  # ==========================================
   client_sync_craft:
     build:
       context: ./client
