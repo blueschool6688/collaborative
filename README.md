@@ -30,7 +30,8 @@
    - [Multi-Node Horizontal Scaling via Redis Mesh](#5-multi-node-horizontal-scaling-via-redis-mesh)
    - [Write-Behind Debounced Compaction Pipeline](#6-write-behind-debounced-compaction-pipeline)
    - [Distributed Awareness & Ephemeral Presence](#7-distributed-awareness--ephemeral-presence)
-   - [Distributed Edge Cases & Fault Tolerance Matrix](#8-distributed-edge-cases--fault-tolerance-matrix)
+   - [Deep-Dive: Critical Distributed Scenarios & Conflict Resolution](#8-deep-dive-critical-distributed-scenarios--conflict-resolution)
+   - [Distributed Edge Cases & Fault Tolerance Matrix](#9-distributed-edge-cases--fault-tolerance-matrix)
 3. [End-to-End System Topology](#-end-to-end-system-topology)
 4. [Key Features & Editor Capabilities](#-key-features--editor-capabilities)
 5. [Monorepo Directory Structure](#-monorepo-directory-structure)
@@ -193,12 +194,91 @@ Collaborator cursor positions, text selection ranges, and client profiles are ep
 
 ---
 
-### 8. Distributed Edge Cases & Fault Tolerance Matrix
+### 8. Deep-Dive: Critical Distributed Scenarios & Conflict Resolution
+
+#### 📡 Scenario A: Offline Editing ➔ Network Reconnection (Offline-First Flow)
+
+What happens when a user loses internet (e.g. on a plane), types extensive content offline, and reconnects hours later while other collaborators have also made edits?
+
+```
+ [CLIENT (OFFLINE)]                                                       [SERVER NODE]
+        │                                                                       │
+        ├── 1. WebSocket Drops ──► Provider status: "disconnected"              │
+        ├── 2. User types offline ──► Local Y.Doc mutates (0ms latency)         │
+        ├── 3. Binary updates persist to Browser IndexedDB (y-indexeddb)        │
+        │      (Data survives browser close/reboot)                             │
+        │                                                                       │
+        │ ══════════════════ [NETWORK RECONNECTED] ══════════════════           │
+        │                                                                       │
+        ├── 4. WebSocket reconnects ──► Handshake begins                        │
+        ├── 5. Client sends its StateVector_Client (~50 bytes) ────────────────►│
+        │                                                                       │ 6. Server calculates:
+        │                                                                       │    Δ_ServerMissing = ExtractUpdates(ServerDoc, SV_Client)
+        │                                                                       │    Δ_ClientMissing = ExtractUpdates(ServerDoc, SV_Server)
+        │◄─── 7. Server sends missing updates Δ_ClientMissing ──────────────────┤
+        ├──── 8. Client sends missing offline updates Δ_ServerMissing ─────────►│
+        │                                                                       │ 9. Server applies Δ_ServerMissing
+        ├── 10. Client applies Δ_ClientMissing locally                          │    - Broadcasts delta to Redis
+        │       (Both Client and Server converge to identical state)            │    - Debounces 3s flush to PostgreSQL
+        ▼                                                                       ▼
+```
+
+1. **Local Isolation & Durability**: When offline, the UI does NOT freeze. Edits immediately commit to in-memory `Y.Doc` and asynchronously write to **IndexedDB**. Even if the user refreshes the page or reboots the computer offline, all edits are intact.
+2. **Bidirectional State Vector Handshake**: Upon reconnection, neither side uploads the entire document. Instead, each peer transmits its compact `StateVector` ($\approx 50$ bytes).
+3. **Symmetric Delta Reconciliation**:
+   - The server computes the binary delta $\Delta_{S \to C}$ of all changes that occurred on the server while the client was offline, streaming it to the client.
+   - The client computes the binary delta $\Delta_{C \to S}$ containing its offline work and streams it to the server.
+4. **Strong Convergence**: Through the CRDT Semilattice properties, both updates are applied without overwriting or erasing each other's work. The server then pushes the client's offline changes to other active peers via Redis Pub/Sub.
+
+---
+
+#### ⚡ Scenario B: Multi-User Concurrent Edits on the Exact Same Line / Position
+
+What happens when Alice and Bob type or delete characters at the exact same index or line at the same millisecond?
+
+```
+Initial Document: "Hello World"
+Cursor Position: Index 5 (between "Hello" and " World")
+
+   [Alice Replica (Client 101)]                 [Bob Replica (Client 202)]
+   Types " Super" at index 5                    Types " Great" at index 5
+   Item_A: { ID: (101, Clock: 1),               Item_B: { ID: (202, Clock: 1),
+             originLeft: 'o',                             originLeft: 'o',
+             originRight: ' ' }                           originRight: ' ' }
+                │                                            │
+                └─────────────────────┬──────────────────────┘
+                                      ▼
+                      YATA Algorithmic Tie-Breaking:
+                 Both have same originLeft and originRight.
+                    Compare ClientID: Client 202 > Client 101
+                                      ▼
+                    Converged Output across ALL replicas:
+                         "Hello Great Super World"
+```
+
+1. **Concurrent Insertions at Same Index (YATA Ordering)**:
+   - Every inserted character is an `Item` with an immutable `ID = (ClientID, LogicalClock)` and stores relative pointers: `originLeft` (the preceding item when created) and `originRight` (the succeeding item when created).
+   - If Alice and Bob insert at the identical location, both items share the exact same `originLeft` and `originRight`.
+   - The **YATA (Yet Another Transformation Approach)** algorithm deterministically resolves order by comparing `ClientID` (or logical clock). Because `202 > 101`, `Item_B` is placed before `Item_A` on **every single client across the world**. No split-brain text divergence is possible.
+
+2. **Simultaneous Insert vs Delete (Tombstone Handling)**:
+   - If Alice types a word inside line 1 while Bob simultaneously presses `Backspace` / `Delete` to remove line 1:
+   - CRDT uses **Tombstones** (`item.deleted = true`) rather than physically removing memory nodes from the linked structure.
+   - Alice's newly inserted characters remain anchored to their respective `originLeft` item (even though it is marked deleted), preventing memory corruption, lost cursors, or crash conditions.
+
+3. **Overlapping Formatting Spans (Mark Unioning)**:
+   - If Alice applies **Bold** to words `[0..10]` while Bob simultaneously applies **Italic & Highlight** to words `[5..15]`:
+   - Formatting attributes are non-destructive metadata sets. The overlapping range `[5..10]` automatically merges into `{ bold: true, italic: true, highlight: true }`.
+
+---
+
+### 9. Distributed Edge Cases & Fault Tolerance Matrix
 
 | Edge Case Scenario | System Behavior & Mitigation | Algorithmic Guarantee |
 | :--- | :--- | :--- |
 | **Simultaneous Insertion at Identical Position** | Alice and Bob both type character `'X'` and `'Y'` at index 5 at the exact same millisecond. | **Deterministic ClientID Tie-Breaking**: YATA compares unique `(ClientID, Clock)` to establish consistent deterministic character ordering across all replicas. |
 | **Prolonged Offline Editing** | User edits document on a 10-hour flight without internet. | **IndexedDB Persistence + State Vector Exchange**: Upon reconnection, only the accumulated delta is transmitted; zero data loss occurs. |
+| **Simultaneous Edit vs Delete** | User A edits text on line 3 while User B deletes line 3. | **Tombstones (`deleted = true`)**: Deleted nodes retain linked-list causality; newly inserted characters retain valid anchor references. |
 | **Temporary Network Partition / Packet Loss** | WebSocket drops intermittently due to unstable 4G/5G. | **Semilattice Idempotency**: Re-transmitted packets do not cause duplication ($A \sqcup A = A$). Exponential backoff reconnects automatically. |
 | **Database Downtime** | PostgreSQL is undergoing backup or restart while users type. | **In-Memory Buffer Continuity**: Active sessions remain uninterrupted in memory; snapshots flush once DB connectivity recovers. |
 | **Cross-Server Cluster Failover** | Server Node 1 crashes unexpectedly. | **Redis Relay & Auto-Reconnect**: Clients reconnect to Server Node 2, hydrate from PostgreSQL/Redis snapshot, and resume editing seamlessly. |
