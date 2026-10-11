@@ -21,14 +21,6 @@ COPY nginx.conf /etc/nginx/conf.d/default.conf
 # Copy compiled static assets from builder stage
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Run as non-root user for K8s security
-RUN chown -R nginx:nginx /usr/share/nginx/html && \
-    chown -R nginx:nginx /var/cache/nginx && \
-    chown -R nginx:nginx /var/log/nginx && \
-    touch /var/run/nginx.pid && \
-    chown nginx:nginx /var/run/nginx.pid
-
-USER nginx
 
 EXPOSE 80
 
