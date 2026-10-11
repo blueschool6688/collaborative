@@ -5,7 +5,7 @@ import { requireAuth, optionalAuth, AuthenticatedRequest } from "../auth/auth.mi
 
 type Role = "VIEWER" | "EDITOR" | "OWNER";
 
-const router = Router();
+const router: Router = Router();
 
 // GET /api/documents - List documents user has access to
 router.get("/", requireAuth, async (req: AuthenticatedRequest, res: Response): Promise<void> => {

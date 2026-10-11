@@ -19,26 +19,26 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState<"google" | "github" | null>(null);
-  const [providers, setProviders] = useState<{ google: boolean; github: boolean }>({ google: false, github: false });
+  const [providers, setProviders] = useState<{ google: boolean; github: boolean }>({ google: true, github: false });
 
-  useEffect(() => {
-    const controller = new AbortController();
-    fetch("/api/auth/providers")
-      .then((res) => res.json())
-      .then((data) => setProviders(data))
-      .catch(() => setProviders({ google: false, github: false }));
+  // useEffect(() => {
+  //   const controller = new AbortController();
+  //   fetch("/api/auth/providers")
+  //     .then((res) => res.json())
+  //     .then((data) => setProviders(data))
+  //     .catch(() => setProviders({ google: false, github: false }));
 
-    const params = new URLSearchParams(window.location.search);
-    const authError = params.get("auth_error");
-    if (authError) {
-      setError(decodeURIComponent(authError));
-      params.delete("auth_error");
-      const newSearch = params.toString() ? `?${params.toString()}` : "";
-      window.history.replaceState({}, "", `${window.location.pathname}${newSearch}`);
-    }
+  //   const params = new URLSearchParams(window.location.search);
+  //   const authError = params.get("auth_error");
+  //   if (authError) {
+  //     setError(decodeURIComponent(authError));
+  //     params.delete("auth_error");
+  //     const newSearch = params.toString() ? `?${params.toString()}` : "";
+  //     window.history.replaceState({}, "", `${window.location.pathname}${newSearch}`);
+  //   }
 
-    return () => controller.abort();
-  }, [isOpen]);
+  //   return () => controller.abort();
+  // }, [isOpen]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -107,9 +107,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
             type="button"
             onClick={() => handleOAuth("google")}
             disabled={oauthLoading !== null || isLoading}
-            className="w-full flex items-center justify-between px-4 py-2.5 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-xs font-semibold text-zinc-800 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800/80 transition-colors shadow-sm disabled:opacity-50"
+            className="w-full px-4 py-2.5 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-xs font-semibold text-zinc-800 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800/80 transition-colors shadow-sm disabled:opacity-50"
           >
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center justify-center gap-2.5">
               {oauthLoading === "google" ? (
                 <div className="w-4 h-4 border-2 border-zinc-400 border-t-transparent rounded-full animate-spin" />
               ) : (
@@ -134,9 +134,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
               )}
               <span>Continue with Google</span>
             </div>
-            <span className="text-[10px] font-mono text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded">
-              {providers.google ? "OAuth 2.0" : "Demo 1-Click"}
-            </span>
           </button>
           {/* 
           <button

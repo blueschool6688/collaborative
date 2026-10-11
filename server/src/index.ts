@@ -14,7 +14,14 @@ const app = express();
 // Middlewares
 app.use(
   cors({
-    origin: [config.clientUrl, "http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:3000"],
+    origin: [
+      config.clientUrl,
+      config.clientUrl.replace(/\/+$/, ""),
+      "http://localhost:5173",
+      "http://127.0.0.1:5173",
+      "http://localhost:3000",
+      "http://127.0.0.1:3000",
+    ].filter(Boolean),
     credentials: true,
   })
 );

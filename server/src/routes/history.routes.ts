@@ -3,7 +3,7 @@ import * as Y from "yjs";
 import { prisma } from "../db.js";
 import { requireAuth, AuthenticatedRequest } from "../auth/auth.middleware.js";
 
-const router = Router();
+const router: Router = Router();
 
 // GET /api/documents/:id/history - List snapshot history
 router.get("/:id/history", requireAuth, async (req: AuthenticatedRequest, res: Response): Promise<void> => {

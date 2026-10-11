@@ -36,8 +36,14 @@ export function useCollaboration(documentId: string | null, enabled: boolean = t
       }
     });
 
-    // 2. Hocuspocus WebSocket Provider
-    const wsUrl = import.meta.env.VITE_WS_URL || `ws://${window.location.hostname || "localhost"}:4000`;
+    // 2. Hocuspocus WebSocket Provider with automatic SSL/WSS detection
+    const isHttps = typeof window !== "undefined" && window.location.protocol === "https:";
+    let wsUrl = import.meta.env.VITE_WS_URL;
+    if (!wsUrl || (isHttps && wsUrl.startsWith("ws://") && !wsUrl.includes("localhost"))) {
+      const protocol = isHttps ? "wss:" : "ws:";
+      const host = isHttps ? window.location.host : `${window.location.hostname || "localhost"}:4000`;
+      wsUrl = `${protocol}//${host}`;
+    }
     const hocuspocus = new HocuspocusProvider({
       url: wsUrl,
       name: documentId,
