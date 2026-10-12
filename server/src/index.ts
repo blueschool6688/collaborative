@@ -17,17 +17,12 @@ app.use(
     origin: [
       config.clientUrl,
       config.clientUrl.replace(/\/+$/, ""),
-      "http://localhost:5173",
-      "http://127.0.0.1:5173",
-      "http://localhost:3000",
-      "http://127.0.0.1:3000",
     ].filter(Boolean),
     credentials: true,
   })
 );
 app.use(express.json({ limit: "10mb" }));
 
-// Request logger with timestamp
 app.use((req, _res, next) => {
   if (req.path !== "/api/health") {
     console.log(`[HTTP] ${req.method} ${req.path}`);

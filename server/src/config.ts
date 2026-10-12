@@ -6,6 +6,7 @@ export const config = {
   databaseUrl: process.env.DATABASE_URL || "postgresql://postgres:postgres@127.0.0.1:5432/collaborative_db?schema=public",
   redisHost: process.env.REDIS_HOST || "127.0.0.1",
   redisPort: parseInt(process.env.REDIS_PORT || "6379", 10),
+  redisPassword: process.env.REDIS_PASSWORD || "",
   jwtSecret: process.env.JWT_SECRET || "collaborative-editor-jwt-secret-key-2026",
   clientUrl: (process.env.CLIENT_URL || "http://localhost:5173").replace(/\/+$/, ""),
   serverUrl: (process.env.SERVER_URL || "http://localhost:4000").replace(/\/+$/, ""),

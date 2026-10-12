@@ -6,6 +6,9 @@ export function createRedisExtension() {
     return new Redis({
       host: config.redisHost,
       port: config.redisPort,
+      options: {
+        password: config.redisPassword || undefined,
+      },
     });
   } catch (error) {
     console.warn("Could not initialize Redis extension, running standalone:", error);
