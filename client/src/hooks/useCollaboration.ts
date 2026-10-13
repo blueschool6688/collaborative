@@ -38,19 +38,19 @@ export function useCollaboration(documentId: string | null, enabled: boolean = t
 
     // 2. Hocuspocus WebSocket Provider with automatic SSL/WSS detection
     const isHttps = typeof window !== "undefined" && window.location.protocol === "https:";
-    let wsUrl = import.meta.env.VITE_WS_URL;
-    if (!wsUrl) {
-      const protocol = isHttps ? "wss:" : "ws:";
-      const isViteDev =
-        typeof window !== "undefined" &&
-        (window.location.port === "5173" || window.location.port === "3000");
-      const host = isViteDev
-        ? `${window.location.hostname || "localhost"}:4000`
-        : (typeof window !== "undefined" ? window.location.host : "localhost");
-      wsUrl = `${protocol}//${host}`;
-    } else if (isHttps && wsUrl.startsWith("ws://") && !wsUrl.includes("localhost")) {
-      wsUrl = wsUrl.replace(/^ws:\/\//, "wss://");
-    }
+    let wsUrl = import.meta.env.VITE_WS_URL as string;
+    // if (!wsUrl) {
+    //   const protocol = isHttps ? "wss:" : "ws:";
+    //   const isViteDev =
+    //     typeof window !== "undefined" &&
+    //     (window.location.port === "5173" || window.location.port === "3000");
+    //   const host = isViteDev
+    //     ? `${window.location.hostname || "localhost"}:4000`
+    //     : (typeof window !== "undefined" ? window.location.host : "localhost");
+    //   wsUrl = `${protocol}//${host}`;
+    // } else if (isHttps && wsUrl.startsWith("ws://") && !wsUrl.includes("localhost")) {
+    //   wsUrl = wsUrl.replace(/^ws:\/\//, "wss://");
+    // }
     const hocuspocus = new HocuspocusProvider({
       url: wsUrl,
       name: documentId,
