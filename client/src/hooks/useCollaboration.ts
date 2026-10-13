@@ -41,14 +41,12 @@ export function useCollaboration(documentId: string | null, enabled: boolean = t
     let wsUrl = import.meta.env.VITE_WS_URL;
     if (!wsUrl) {
       const protocol = isHttps ? "wss:" : "ws:";
-      const isLocalhost =
+      const isViteDev =
         typeof window !== "undefined" &&
-        (window.location.hostname === "localhost" ||
-          window.location.hostname === "127.0.0.1" ||
-          window.location.hostname === "0.0.0.0");
-      const host = isLocalhost
-        ? `${window.location.hostname}:4000`
-        : (typeof window !== "undefined" ? window.location.host : "localhost:4000");
+        (window.location.port === "5173" || window.location.port === "3000");
+      const host = isViteDev
+        ? `${window.location.hostname || "localhost"}:4000`
+        : (typeof window !== "undefined" ? window.location.host : "localhost");
       wsUrl = `${protocol}//${host}`;
     } else if (isHttps && wsUrl.startsWith("ws://") && !wsUrl.includes("localhost")) {
       wsUrl = wsUrl.replace(/^ws:\/\//, "wss://");
