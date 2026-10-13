@@ -39,10 +39,19 @@ export function useCollaboration(documentId: string | null, enabled: boolean = t
     // 2. Hocuspocus WebSocket Provider with automatic SSL/WSS detection
     const isHttps = typeof window !== "undefined" && window.location.protocol === "https:";
     let wsUrl = import.meta.env.VITE_WS_URL;
-    if (!wsUrl || (isHttps && wsUrl.startsWith("ws://") && !wsUrl.includes("localhost"))) {
+    if (!wsUrl) {
       const protocol = isHttps ? "wss:" : "ws:";
-      const host = isHttps ? window.location.host : `${window.location.hostname || "localhost"}:4000`;
+      const isLocalhost =
+        typeof window !== "undefined" &&
+        (window.location.hostname === "localhost" ||
+          window.location.hostname === "127.0.0.1" ||
+          window.location.hostname === "0.0.0.0");
+      const host = isLocalhost
+        ? `${window.location.hostname}:4000`
+        : (typeof window !== "undefined" ? window.location.host : "localhost:4000");
       wsUrl = `${protocol}//${host}`;
+    } else if (isHttps && wsUrl.startsWith("ws://") && !wsUrl.includes("localhost")) {
+      wsUrl = wsUrl.replace(/^ws:\/\//, "wss://");
     }
     const hocuspocus = new HocuspocusProvider({
       url: wsUrl,
